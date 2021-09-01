@@ -13,7 +13,8 @@
 
 import rospy
 
-from csa_msgs.msg import CSADirective, CSAResponse
+# HOW TO IMPORT FROM A BUILT ROS PACKAGE?
+from csa_msgs.msg import Directive, Response
 
 
 class ControlComponent(object):
@@ -43,14 +44,13 @@ class ControlComponent(object):
         self.directive_recieved = False
         self.tactic_recieved = False
         self.response_revieved = False
-        self.pause = False
-        self.switch = False
         self.failure = False
         
         # Variables
         self.directive = None
         self.tactic = None
         self.state = "standby"
+        self.system_state = None
         
         # Setup ROS communication objects?
         
@@ -79,7 +79,7 @@ class ControlComponent(object):
         # Wait for a new directive from arbitration
         if self.state == "standby":
             if directive_recieved:
-                #ISSUE DIRECTIVE TO TACTICS
+                self.tact_dir = self.directive
                 self.state = "planning"
             else:
                 pass
@@ -97,29 +97,15 @@ class ControlComponent(object):
         elif self.state == "execution":
             if not response_recieved:
                 self.compute_control_directive()
-                #ISSUE CONTROL DIRECTIVES TO AM/LOWER MODULE
             elif self.response_recieved and self.failure:
-                #ISSUE FAILURE RESPONSE TO ARB
+                self.create_response()#<--TODO
                 self.state = "failure"
             elif self.response_received and not self.failure:
-                #ISSUE SUCCESS RESPONSE TO ARB
+                self.create_response()#<--TODO
                 self.state = "standby"
-            elif self.pause:
-                #ISSUE PAUSE DIRECTIVE TO AM/LOWER MODULE
-                self.state = "pause"
-            elif self.switch:
-                #ISSUE SWITCH DIRECTIVE TO AM/LOWER MODULE
-                self.state = "switching"
-        
-        # Pause the execution of the directive
-        elif self.state == "paused":
-            if not self.pause:
-                #ISSUE UNPAUSE DIRECTIVE TO AM/LOWER MODULE
-                self.state = "execution"
-            elif self.pause:
-                pass
-            elif self.failure:
-                self.state = "failure"
+            elif self.directive_recieved:
+                self.compute_control_directive()
+                self.state = "switch"
         
         # Respond to changed directives from the arbitration component
         elif self.state == "switching":
@@ -138,7 +124,7 @@ class ControlComponent(object):
         TODO
         """
         pass
-        
+    
     def handle_output_messages(self):
         """
         Assemble ouput messages to be sent to the other components of
