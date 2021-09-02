@@ -13,8 +13,9 @@
 
 import rospy
 
-# HOW TO IMPORT FROM A BUILT ROS PACKAGE?
 from csa_msgs.msg import Directive, Response
+from response import create_response_msg # TODO: Redo this
+from directive import create_directive_msg # TODO: Redo this
 
 
 class ControlComponent(object):
@@ -32,13 +33,10 @@ class ControlComponent(object):
         - Reports success/failure of the merged directive to the 
           arbitration component
           
-    TODO: Fill out functions
+    TODO: Test member functions
     """
     
-    def __init__(self, state_topic):
-        
-        # Get parameters
-        #TODO
+    def __init__(self):
 
         # Flags
         self.directive_recieved = False
@@ -48,20 +46,34 @@ class ControlComponent(object):
         
         # Variables
         self.directive = None
+        self.tact_directive = None
         self.tactic = None
-        self.state = "standby"
+        self.ctrl_directive = None
+        self.response = None
         self.system_state = None
-        
-        # Setup ROS communication objects?
-        
-    def run(self, arb_msg, tact_msg, am_msg):
+        self.state = "standby"
+
+    def run(self, arb_msg, tact_msg, response_msg, state_msg):
         """
         Run the component once, reading in messages from the other
         components and updating the internal state machine
         """
         
+        # Set flags and certain variables for the current loop
+        self.directive_recieved = False
+        self.tact_directive = None
+        self.tactic_recieved = False
+        self.response_recieved = False
+        self.system_state = None
+        self.response = None
+        
         # Get relevent information from the other components' inputs
-        self.parse_input_messages(arb_msg, tact_msg, am_msg)
+        self.handle_arbitrated_directivedirective(self, arb_msg)
+        self.handle_tactic_return(self, tact_msg)
+        self.handle_response(self, response_msg)
+        
+        # Store the system state
+        self.system_state = state_msg
         
         # Run the state machine once
         self.run_state_machine()
@@ -98,50 +110,120 @@ class ControlComponent(object):
             if not response_recieved:
                 self.compute_control_directive()
             elif self.response_recieved and self.failure:
-                self.create_response()#<--TODO
                 self.state = "failure"
             elif self.response_received and not self.failure:
-                self.create_response()#<--TODO
                 self.state = "standby"
             elif self.directive_recieved:
                 self.compute_control_directive()
-                self.state = "switch"
-        
-        # Respond to changed directives from the arbitration component
-        elif self.state == "switching":
-            #TODO
-            pass
             
         # Handle a failure in the current directive
         elif self.state == "failure":
             self.handle_failure()
             
-    def parse_input_messages(self, arb_msg, tact_msg, am_msg):
+    def handle_arbitrated_directive(self, arb_directive):
         """
-        Read out important information from the messages sent by each
-        component of the module.
+        Handle directive inputs from commanding module(s).
+        """
         
-        TODO
+        # Handle the new directive
+        if arb_directive is None:
+            pass
+        
+        else:
+            #TODO: handle switching between directives during execution
+            
+            # Store new directive
+            self.directive = arb_directive
+            
+            # Set flag
+            self.directive_recieved = True
+        
+    def handle_tactic_return(self, tactic_msg):
         """
-        pass
+        Handle a return message from the tactics component of the 
+        module.
+        """
+        
+        # Handle the new tactics message
+        if tactic_msg is None:
+            pass
+            
+        else:
+            # See if tactics failed
+            if tactic_msg.status == "failure":
+                self.failure = True
+            
+            # Store the received tactic
+            else:
+                self.tactic = tactic_msg
+                
+                # Set flag
+                self.tactic_recieved = True
+        
+    def handle_response(self, response):
+        """
+        Handle a response from the activity manager component of the 
+        module or an external commanded module.
+        """
+        
+        # Handle the new response
+        if response is None:
+            pass
+        
+        else:
+            # Check if the commanded directive succeded or failed
+            if response.status == "failure":
+                self.failure = True
+            elif response.status == "success":
+                pass
+                #TODO: do more here?
+            
+            # Store the response
+            self.response = response
+            
+            # Set flag
+            self.response_recieved = True
     
     def handle_output_messages(self):
         """
         Assemble ouput messages to be sent to the other components of
         the module
-        
-        TODO
         """
-        pass
+        
+        # Handle the control directive outputs
+        if self.ctrl_directive is None:
+            to_cmd = None
+        else:
+            to_cmd = create_directive_msg() # Todo
+            
+        # Handle a request to the tactic component for a tactic
+        if self.tact_directive is None:
+            to_tact = None
+        else:
+            to_tact = self.tact_directive
+            
+        # Handle issuance of a response to the arbitration component
+        if self.response_recieved:
+            if self.failure:
+                fail_msg = self.response.reject_msg
+                to_arb = create_response_msg(self.cur_id, "failure", fail_msg)
+            else:
+                to_arb = create_response_msg(self.cur_id, "success", "")
+        else:
+            to_arb = None
+            
+        return [to_arb, to_tact, to_cmd]
         
     def compute_control_directive(self):
         """
         Using up-to-date system state information, compute the nessecary
         outputs for the controlled modules to execute the directive.
         
-        TODO
+        TODO: More logic to catch failures
         """
-        pass
+        
+        # Run the control tactic
+        self.ctrl_directive = self.tactic.run(self.system_state)
         
     def handle_failure(self):
         """

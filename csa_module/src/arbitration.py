@@ -33,7 +33,7 @@ class ArbitrationComponent(object):
     TODO: Test all member functions
     """
     
-    def __init__(self, command_topic, response_topic, merge_algorithm):
+    def __init__(self, merge_algorithm):
         
         # Get Parameters
         self.merge_algorithm = merge_algorithm
@@ -137,9 +137,6 @@ class ArbitrationComponent(object):
             # Set flag
             self.directive_recieved = True
             
-        else:
-            pass
-        
     def handle_ctrl_response(self, response):
         """
         Handle a response from the control component of the module.
@@ -156,7 +153,8 @@ class ArbitrationComponent(object):
             elif response.status == "success":
                 pass
                 #TODO: do more here?
-                
+            
+            # Store the response
             self.response = response
             
             # Set flag
