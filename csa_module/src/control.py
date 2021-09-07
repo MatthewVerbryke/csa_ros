@@ -68,9 +68,9 @@ class ControlComponent(object):
         self.response = None
         
         # Get relevent information from the other components' inputs
-        self.handle_arbitrated_directivedirective(self, arb_msg)
-        self.handle_tactic_return(self, tact_msg)
-        self.handle_response(self, response_msg)
+        self.handle_arbitrated_directive(arb_msg)
+        self.handle_tactic_return(tact_msg)
+        self.handle_response(response_msg)
         
         # Store the system state
         self.system_state = state_msg
