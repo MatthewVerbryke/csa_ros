@@ -1,20 +1,34 @@
-# Directive Header (directive ID, time transmitted, frame of reference)
+# Directive header (directive ID, time transmitted, frame of reference)
 Header header
 #
-# Type of action to be taken
-string action
+# Action name
+string name
 #
-# Action start time
-time start_time
+# Description of intent or purpose
+string description
 #
-# Objective of the this directive. Includes multiple ways to express it, so not all of these will be filled at the same time.
-string target
-csa_msgs/TimedPoseArray target_poses
-trajectory_msgs/JointTrajectory joint_trajectory
+# Node source of the directive
+string source
 #
-# rules or parameters for action execution (best way to currently do this is to pass a dictionary as a string and convert back at destination)
-string rules
-string parameters
+# Time to accept or reject directive
+duration response_time
 #
-# Desired time of completion
-time end_time
+# Priority of the directive
+int16 priority
+#
+# Deadline for completion
+time deadline
+#
+# The following are represented as strings, which are parsed at the end point component
+# May change this at a later date
+# Entry conditions
+string[] entry_conds
+#
+# Exit (end, goals) conditions
+string[] end_conds
+# 
+# Rules for the action
+string[] rules
+#
+# Performance criteria placed on the action
+string[] crits
