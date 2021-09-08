@@ -14,8 +14,8 @@
 import rospy
 
 from csa_msgs.msg import Directive, Response
-from response import create_response_msg # TODO: Redo this
-from directive import create_directive_msg # TODO: Redo this
+from csa_msgs.response import create_response_msg
+from csa_msgs.directive import create_directive_msg
 
 
 class ControlComponent(object):
@@ -43,8 +43,10 @@ class ControlComponent(object):
         self.tactic_recieved = False
         self.response_revieved = False
         self.failure = False
+        self.success = False
         
         # Variables
+        self.cur_id = 0
         self.directive = None
         self.tact_directive = None
         self.tactic = None
@@ -61,10 +63,10 @@ class ControlComponent(object):
         
         # Set flags and certain variables for the current loop
         self.directive_recieved = False
-        self.tact_directive = None
+        self.tactic_directive = None
         self.tactic_recieved = False
         self.response_recieved = False
-        self.system_state = None
+        self.success = False
         self.response = None
         
         # Get relevent information from the other components' inputs
@@ -90,31 +92,34 @@ class ControlComponent(object):
         
         # Wait for a new directive from arbitration
         if self.state == "standby":
-            if directive_recieved:
-                self.tact_dir = self.directive
+            if self.directive_recieved:
+                self.tactic_directive = [self.directive, self.system_state]
                 self.state = "planning"
             else:
                 pass
         
         # Wait for tactics component to return a tactic
         elif self.state == "planning":
-            if self.tactic_recieved:
+            if self.tactic_recieved and not self.failure:
                 self.state = "execution"
-            elif not self.tactic_revieved:
-                pass
-            elif self.failure:
+            elif self.tactic_recieved and self.failure:
                 self.state = "failure"
+            elif not self.tactic_recieved:
+                pass
+                
         
         # Execute the directive using the returned tactic
         elif self.state == "execution":
-            if not response_recieved:
+            if self.directive_recieved: # TODO: improve this?
+                self.compute_control_directive()
+                self.tactic_directive = [self.directive, self.system_state]
+                self.state = "planning"
+            elif not self.response_recieved:
                 self.compute_control_directive()
             elif self.response_recieved and self.failure:
                 self.state = "failure"
-            elif self.response_received and not self.failure:
+            elif self.response_recieved and self.success:
                 self.state = "standby"
-            elif self.directive_recieved:
-                self.compute_control_directive()
             
         # Handle a failure in the current directive
         elif self.state == "failure":
@@ -157,8 +162,8 @@ class ControlComponent(object):
             else:
                 self.tactic = tactic_msg
                 
-                # Set flag
-                self.tactic_recieved = True
+            # Set flag
+            self.tactic_recieved = True
         
     def handle_response(self, response):
         """
@@ -175,7 +180,7 @@ class ControlComponent(object):
             if response.status == "failure":
                 self.failure = True
             elif response.status == "success":
-                pass
+                self.success = True
                 #TODO: do more here?
             
             # Store the response
@@ -193,14 +198,16 @@ class ControlComponent(object):
         # Handle the control directive outputs
         if self.ctrl_directive is None:
             to_cmd = None
+        elif self.failure or self.success:
+            to_cmd = None
         else:
-            to_cmd = create_directive_msg() # Todo
+            to_cmd = self.ctrl_directive
             
         # Handle a request to the tactic component for a tactic
-        if self.tact_directive is None:
+        if self.tactic_directive is None:
             to_tact = None
         else:
-            to_tact = self.tact_directive
+            to_tact = self.tactic_directive
             
         # Handle issuance of a response to the arbitration component
         if self.response_recieved:
@@ -229,6 +236,8 @@ class ControlComponent(object):
         """
         Handle failures that can happen to the component.
         
-        TODO
+        TODO: Impliment this functionality
         """
-        pass
+        self.state = "standby"
+        self.failure = False
+        self.ctrl_directive = None

@@ -14,7 +14,7 @@
 import rospy
 
 from csa_msgs.msg import Directive, Response
-from response import create_response_msg # TODO: Redo this
+from csa_msgs.response import create_response_msg
 
 
 class ArbitrationComponent(object):
@@ -29,8 +29,6 @@ class ArbitrationComponent(object):
         - Issue the arbitrated directive to control component
         - Recieve and analyze reponse from control element
         - Report status back to commanding module
-        
-    TODO: Test all member functions
     """
     
     def __init__(self, merge_algorithm):
@@ -66,11 +64,11 @@ class ArbitrationComponent(object):
         self.response = None
         
         # Handle input messages from ctrl and the commanding module
-        self.handle_input_directives(directive_msg)
+        self.handle_new_directive(directive_msg)
         self.handle_ctrl_response(ctrl_msg)
         
         # Check how many directives are left
-        self.more_directives = (len(self.directives) > 0)
+        self.more_directives = (len(self.directives) > 1)
         
         # Run the state machine once
         self.run_state_machine()
@@ -103,21 +101,22 @@ class ArbitrationComponent(object):
             elif self.directive_recieved:
                 self.merged_directive = self.merge_algorithm.run(self.directives)
                 self.issue_directive = True
+                # TODO: decide whether to append new directive or
+                #       replace current one
             elif self.response_recieved and self.failure:
                 self.state = "failure"
             elif self.response_recieved and not self.more_directives:
+                self.directives.pop(0)# TODO: replace with ID based approach
                 self.state = "standby"
             elif self.response_recieved and self.more_directives:
+                self.directives.pop(0)# TODO: replace with ID based approach
                 self.merged_directive = self.merge_algorithm.run(self.directives)
                 self.issue_directive = True
 
         # Coordinate with commanding module on failures
         elif self.state == "failure":
-            if self.continue_next_directive:
-                self.state = "waiting"
-                self.issue_directive = True
-            else:
-                self.state = "standby"
+            self.state = "standby"
+            #TODO: determine if next directive can be substituted
     
     def handle_new_directive(self, directive):
         """

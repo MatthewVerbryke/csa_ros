@@ -14,7 +14,7 @@
 import rospy
 
 
-class Tactics(object):
+class TacticsComponent(object):
     """
     A generic tactics component object for a CSA module.
         
@@ -32,7 +32,7 @@ class Tactics(object):
     def __init__(self, tactics_algorithm):
         
         # Flags
-        self.directive_recieved = False
+        self.request_recieved = False
         
         # Variables
         self.tactics_algorithm = tactics_algorithm        
@@ -44,19 +44,19 @@ class Tactics(object):
         """
         
         # Set flags for the current loop
-        self.directive_recieved = False
+        self.request_recieved = False
         
         # Get relevent information from the other components' inputs
         directive, state = self.handle_request_message(ctrl_msg)
         
         # Handle a new directive
-        if self.directive_recieved:
+        if self.request_recieved:
             tactic = self.tactics_algorithm.run(directive, state)
             return tactic
         else:
             return None
         
-    def handle_request_message(ctrl_msg):
+    def handle_request_message(self, ctrl_msg):
         """
         Handle a tactics request from the control component, which
         consisits of a arbitrated directive and the system state.
