@@ -53,6 +53,7 @@ add_message_files(
    FILES
    Directive.msg
    Response.msg
+   Parameters.msg
    TimedPoseArray.msg
  )
 

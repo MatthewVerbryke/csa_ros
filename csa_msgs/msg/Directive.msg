@@ -16,19 +16,6 @@ duration response_time
 # Priority of the directive
 int16 priority
 #
-# Deadline for completion
-time deadline
-#
-# The following are represented as strings, which are parsed at the end point component
+# Params put in their own message class for now due to potential complexity
 # May change this at a later date
-# Entry conditions
-string[] entry_conds
-#
-# Exit (end, goals) conditions
-string[] end_conds
-# 
-# Rules for the action
-string[] rules
-#
-# Performance criteria placed on the action
-string[] crits
+Parameters params
