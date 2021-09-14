@@ -19,7 +19,7 @@ import rospy
 
 from arbitration import ArbitrationComponent
 from control import ControlComponent
-import csa_msg.msg import Directive, Response
+from csa_msgs.msg import Directive, Response
 from tactics import TacticsComponent
 
 
@@ -67,7 +67,7 @@ class CSAModule(object):
         # Setup cleanup function
         rospy.on_shutdown(self.cleanup)
         
-    def main(self, directives, responses, state):
+    def run(self, directives, responses, state):
         """
         Run the components of the module once.
         
@@ -81,7 +81,7 @@ class CSAModule(object):
         ctrl_output = self.control.run(self.arb_to_ctrl,
                                        self.tact_to_ctrl,
                                        state,
-                                       response)
+                                       responses)
         tact_output = self.tactics.run(self.ctrl_to_tact)
         
         # Store output messages needed for the next loop
@@ -89,7 +89,7 @@ class CSAModule(object):
         self.ctrl_to_arb = ctrl_output[0]
         self.ctrl_to_tact = ctrl_output[1]
         self.tact_to_ctrl = tact_output
-        
+        print(self.arb_to_ctrl) 
         # Output messages for other modules
         response = arb_output[1]
         directive = ctrl_output[2]
