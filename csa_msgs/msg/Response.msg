@@ -1,6 +1,12 @@
 # Response header (directive ID, time transmitted, frame of reference)
 Header header
 #
+# Node source of the response
+string source
+#
+# Node destination of the response
+string destination
+#
 # Status of the controlled module/component
 string status
 #

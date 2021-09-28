@@ -10,6 +10,9 @@ string description
 # Node source of the directive
 string source
 #
+# Node destination of the directive
+string destination
+#
 # Time to accept or reject directive
 duration response_time
 #

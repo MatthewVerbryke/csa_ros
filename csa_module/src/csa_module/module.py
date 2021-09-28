@@ -40,6 +40,12 @@ class CSAModule(object):
         rospy.init_node(name)
         rospy.loginfo("'{}' node initialized".format(name))
         
+        # Setup cleanup function
+        rospy.on_shutdown(self.cleanup)
+        
+        # Get a lock
+        self.lock = thread.allocate_lock()
+        
         # Get module parameters
         self.name = name
         self.rate = rospy.get_param("~rate", 100.0)
@@ -54,27 +60,100 @@ class CSAModule(object):
         self.arbitration = ArbitrationComponent(arb_algorithm)
         self.control = ControlComponent()
         self.tactics = TacticsComponent(tactics_algorithm)
+        #TODO: Activity Manager
         
-        # Get a lock
-        self.lock = thread.allocate_lock()
+        # Create empty subscribers callback holding variables
+        self.command = None
+        self.response = None
+        self.state = None
         
-        # Create empty module
+        # Create empty internal messages holding variables
         self.arb_to_ctrl = None
         self.ctrl_to_arb = None
         self.ctrl_to_tact = None
         self.tact_to_ctrl = None
         
-        # Setup cleanup function
-        rospy.on_shutdown(self.cleanup)
+        # Signal completion
+        rospy.loginfo("CSA module components initialized")
         
-    def run(self, directives, responses, state):
+    def initialize_communications(self, state_topic, pub_topics):
+        """
+        Initialize the communication interfaces for the module. 
+        
+        TODO: catch errors
+        TODO: include ROSbridge communcation patterns.
+        """
+        
+        # Publisher storage
+        self.publishers = {}
+        
+        # Setup information for default subscriptions
+        self.commands_topic = self.name + "/commands"
+        self.responses_topic = self.name + "/responses"
+        self.state_topic = state_topic[0]
+        self.state_format = state_topic[1]
+        
+        # Initialize common subscriptions
+        self.command_sub = rospy.Subscriber(self.commands_topic,
+                                            Directive,
+                                            self.command_callback)
+        self.response_sub = rospy.Subscriber(self.responses_topic,
+                                             Response,
+                                             self.response_callback)
+        self.state_sub = rospy.Subscriber(self.state_topic,
+                                          self.state_format,
+                                          self.state_callback)
+        
+        # Setup all required publishers
+        for key,value in pub_topics:
+            if value == "Directive":
+                entry = {key: rospy.Publisher(key, Directive, queue_size=1)}
+            elif value == "Response":
+                entry = {key: rospy.Publisher(key, Response, queue_size=1)}
+                                              
+            # Add to storage dictionary
+            self.publishers.update(entry)
+        
+        # Signal completion
+        rospy.loginfo("Communication interfaces setup")
+        
+    def command_callback(self, msg):
+        """
+        Callback function for directive/command messages to this module.
+        """
+        
+        # Store incoming command messages
+        self.lock.acquire()
+        self.command = msg
+        self.lock.release()
+        
+    def response_callback(self, msg):
+        """
+        Callback function for response messages to this module.
+        """
+        
+        # Store incoming command messages
+        self.lock.acquire()
+        self.response = msg
+        self.lock.release()
+        
+    def state_callback(self, msg):
+        """
+        Callback function for state messages from the state estimator.
+        """
+        
+        # Store incoming command messages
+        self.lock.acquire()
+        self.state = msg
+        self.lock.release()
+        
+    def run(self):
         """
         Run the components of the module once.
         
         TODO: Investigate running them in parallel
-        TODO: Test
         """
-            
+        
         # Run each component of the module
         arb_output = self.arbitration.run(directives,
                                           self.ctrl_to_arb)
@@ -89,13 +168,19 @@ class CSAModule(object):
         self.ctrl_to_arb = ctrl_output[0]
         self.ctrl_to_tact = ctrl_output[1]
         self.tact_to_ctrl = tact_output
-        print(self.arb_to_ctrl) 
-        # Output messages for other modules
-        response = arb_output[1]
-        directive = ctrl_output[2]
         
-        return response, directive
-            
+        # Get the output messages and relevant information
+        response = arb_output[1]
+        response_dest = response.destination
+        directive = ctrl_output[2]
+        directive_dest = directive.destination
+        
+        # Publish messages
+        # TODO: handle multiple messages of same type to multiple
+        #       locations
+        self.publishers[directive_dest].publisher(directive)
+        self.publishers[response_dest].publisher(response)
+        
     def cleanup(self):
         """
         Things to do when shutdown occurs.
