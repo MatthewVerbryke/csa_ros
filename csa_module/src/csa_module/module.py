@@ -74,7 +74,7 @@ class CSAModule(object):
         self.tact_to_ctrl = None
         
         # Signal completion
-        rospy.loginfo("CSA module components initialized")
+        rospy.loginfo("Module components initialized")
         
     def initialize_communications(self, state_topic, pub_topics):
         """
@@ -105,11 +105,13 @@ class CSAModule(object):
                                           self.state_callback)
         
         # Setup all required publishers
-        for key,value in pub_topics:
-            if value == "Directive":
-                entry = {key: rospy.Publisher(key, Directive, queue_size=1)}
-            elif value == "Response":
-                entry = {key: rospy.Publisher(key, Response, queue_size=1)}
+        for key,value in pub_topics.items():
+            if value == Directive:
+                topic = key + "/commands"
+                entry = {key: rospy.Publisher(topic, Directive, queue_size=1)}
+            elif value == Response:
+                topic = key + "/responses"
+                entry = {key: rospy.Publisher(topic, Response, queue_size=1)}
                                               
             # Add to storage dictionary
             self.publishers.update(entry)
@@ -151,35 +153,38 @@ class CSAModule(object):
         """
         Run the components of the module once.
         
-        TODO: Investigate running them in parallel
+        TODO: Investigate running components in parallel
         """
         
         # Run each component of the module
-        arb_output = self.arbitration.run(directives,
+        arb_output = self.arbitration.run(self.command,
                                           self.ctrl_to_arb)
         ctrl_output = self.control.run(self.arb_to_ctrl,
                                        self.tact_to_ctrl,
-                                       state,
-                                       responses)
+                                       self.state,
+                                       self.response)
         tact_output = self.tactics.run(self.ctrl_to_tact)
         
-        # Store output messages needed for the next loop
+        # Store internal messages needed for the next loop
         self.arb_to_ctrl = arb_output[0]
         self.ctrl_to_arb = ctrl_output[0]
         self.ctrl_to_tact = ctrl_output[1]
         self.tact_to_ctrl = tact_output
         
-        # Get the output messages and relevant information
+        # Get the messages to publish to other modules
         response = arb_output[1]
-        response_dest = response.destination
         directive = ctrl_output[2]
-        directive_dest = directive.destination
         
-        # Publish messages
+        # Publish directive and response messages if their is one
         # TODO: handle multiple messages of same type to multiple
         #       locations
-        self.publishers[directive_dest].publisher(directive)
-        self.publishers[response_dest].publisher(response)
+        if response is not None:
+            response_dest = response.destination
+            self.publishers[response_dest].publisher(response)
+        
+        if directive is not None:
+            directive_dest = directive.destination
+            self.publishers[directive_dest].publisher(directive)
         
     def cleanup(self):
         """
@@ -188,4 +193,4 @@ class CSAModule(object):
         
         # Log shutdown of the module
         rospy.sleep(1)
-        rospy.loginfo("Shutting down node '{}'".format(self.name))
+        rospy.loginfo("Shutting down '{}' node".format(self.name))

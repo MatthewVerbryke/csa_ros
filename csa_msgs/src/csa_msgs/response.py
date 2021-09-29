@@ -28,6 +28,8 @@ def create_response_msg(seq_num, status, reject_msg):
     msg.header.stamp = rospy.Time.now()
     
     # Build message from inputs
+    msg.source = src
+    msg.destination = dest
     msg.status = status
     msg.reject_msg = reject_msg
     
