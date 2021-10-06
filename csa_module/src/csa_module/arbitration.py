@@ -31,9 +31,10 @@ class ArbitrationComponent(object):
         - Report status back to commanding module
     """
     
-    def __init__(self, merge_algorithm):
+    def __init__(self, module_name, merge_algorithm):
         
         # Get Parameters
+        self.module_name = module_name
         self.merge_algorithm = merge_algorithm
         
         # Flags
@@ -41,10 +42,11 @@ class ArbitrationComponent(object):
         self.response_recieved = False
         self.more_directives = False
         self.issue_directive = False
+        self.response_to_cmd = None
         self.failure = False
         
         # Variables
-        self.directives = []
+        self.directives = {}
         self.cur_id = 0
         self.response = None
         self.merged_directive = None
@@ -61,14 +63,14 @@ class ArbitrationComponent(object):
         self.directive_recieved = False
         self.response_recieved = False
         self.issue_directive = False
+        self.response_to_cmd = None
+        self.new_directive = None
+        self.old_directive = None
         self.response = None
         
         # Handle input messages from ctrl and the commanding module
         self.handle_new_directive(directive_msg)
         self.handle_ctrl_response(ctrl_msg)
-        
-        # Check how many directives are left
-        self.more_directives = (len(self.directives) > 1)
         
         # Run the state machine once
         self.run_state_machine()
@@ -87,9 +89,9 @@ class ArbitrationComponent(object):
         if self.state == "standby":
             
             if self.directive_recieved:
-                self.merged_directive = self.merge_algorithm.run(self.directives)
-                self.issue_directive = True
+                self.merge_directives()
                 self.state = "waiting"
+                
             else:
                 pass
                 
@@ -98,20 +100,18 @@ class ArbitrationComponent(object):
             
             if not self.directive_recieved and not self.response_recieved:
                 pass
+                
             elif self.directive_recieved:
-                self.merged_directive = self.merge_algorithm.run(self.directives)
-                self.issue_directive = True
-                # TODO: decide whether to append new directive or
-                #       replace current one
+                self.merge_directives()
+                
             elif self.response_recieved and self.failure:
                 self.state = "failure"
-            elif self.response_recieved and not self.more_directives:
-                self.directives.pop(0)# TODO: replace with ID based approach
+                
+            elif self.response_recieved and len(self.directives) == 0:
                 self.state = "standby"
-            elif self.response_recieved and self.more_directives:
-                self.directives.pop(0)# TODO: replace with ID based approach
-                self.merged_directive = self.merge_algorithm.run(self.directives)
-                self.issue_directive = True
+                
+            elif self.response_recieved and len(self.directives) == 1:
+                self.merge_directives()
 
         # Coordinate with commanding module on failures
         elif self.state == "failure":
@@ -128,13 +128,17 @@ class ArbitrationComponent(object):
             pass
             
         else:            
-            # TODO: Look for problems and reject bad directives
+            # Reject new directive if we already have two in storage
+            if len(self.directives) == 2:
+                self.response_to_cmd = "reject"
+                self.reject_msg = "Tried to append a third directive"
+            else:
+                # Store directive
+                self.directives.update({directive.header.seq: directive})
+                self.directive_recieved = True
             
-            # Store directive
-            self.directives.append(directive)
-            
-            # Set flag
-            self.directive_recieved = True
+            # Store new directive (even if rejected)
+            self.new_directive = directive
             
     def handle_ctrl_response(self, response):
         """
@@ -150,34 +154,80 @@ class ArbitrationComponent(object):
             if response.status == "failure":
                 self.failure = True
             elif response.status == "success":
-                pass
-                #TODO: do more here?
+                self.old_directive = self.directives[self.cur_id]
+                self.directives.pop(self.cur_id)
+        
+            # Set flags
+            self.response_to_cmd = "complete"
             
             # Store the response
             self.response = response
             
             # Set flag
             self.response_recieved = True
-                
+            
+    def merge_directives(self):
+        """
+        Run the merging algorithm and determine what to do with the 
+        result.
+        """
+        
+        # Merge the current list of directives
+        action, directive = self.merge_algorithm.run(self.directives)
+        
+        # Option 1: Setup the new directive to be issued
+        if action[0] == "issue":
+            self.issue_directive = True
+            self.arb_directive = directive
+            self.cur_id = directive.header.seq
+            if self.directive_recieved:
+                self.response_to_cmd = "accept"
+        
+        # Option 2: Accept but continue with current directive
+        elif action[0] == "continue":
+            self.response_to_cmd = "accept"
+            
+        # Option 3: Reject the directive
+        elif action[0] == "reject":
+            self.response_to_cmd = "reject"
+            self.reject_msg = action[1]
+            
     def handle_output_messages(self):
         """
         Assemble and return output messages for the component.
         """
         
-        # Handle issuance of merged directive
+        to_ctrl = None
+        to_cmd = None
+        
+        # Issue a merged directive
         if self.issue_directive:
-            to_ctrl = self.merged_directive
-        else:
-            to_ctrl = None
-            
-        # Handle issuance of a response to the commanding module(s)
-        if self.response_recieved:
-            if self.failure:
-                fail_msg = self.response.reject_msg
-                to_cmd = create_response_msg(self.cur_id, "failure", fail_msg)
-            else:
-                to_cmd = create_response_msg(self.cur_id, "success", "")
-        else:
-            to_cmd = None
+            to_ctrl = self.arb_directive
+        
+        # Respond to the commanding module
+        if self.response_to_cmd == "complete" and not self.failure:
+            to_cmd = create_response_msg(self.old_directive.header.seq,
+                                         self.module_name,
+                                         self.old_directive.source,
+                                         "success",
+                                         "")
+        elif self.response_to_cmd == "complete" and self.failure:
+            to_cmd = create_response_msg(self.directives[self.cur_id].header.seq,
+                                         self.module_name,
+                                         self.directives[self.cur_id].source,
+                                         "failure",
+                                         self.response.reject_msg)
+        elif self.response_to_cmd == "accept":
+            to_cmd = create_response_msg(self.new_directive.header.seq,
+                                         self.module_name,
+                                         self.new_directive.source,
+                                         "accept",
+                                         "")
+        elif self.response_to_cmd == "reject":
+            to_cmd = create_response_msg(self.new_directive.header.seq,
+                                         self.module_name,
+                                         self.new_directive.source,
+                                         "failure",
+                                         self.reject_msg)
                 
         return [to_ctrl, to_cmd]
