@@ -74,7 +74,7 @@ class ArbitrationComponent(object):
         
         # Run the state machine once
         self.run_state_machine()
-
+        
         # Create/Publish output messages
         output = self.handle_output_messages()
         
@@ -84,7 +84,7 @@ class ArbitrationComponent(object):
         """
         Run through the state machine once.
         """
-
+        
         # Wait for a new directive from the commanding module
         if self.state == "standby":
             

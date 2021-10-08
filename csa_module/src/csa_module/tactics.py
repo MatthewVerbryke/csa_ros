@@ -52,7 +52,8 @@ class TacticsComponent(object):
         # Handle a new directive
         if self.request_recieved:
             tactic = self.tactics_algorithm.run(directive, state)
-            return tactic
+            
+            return tactic[0] #<-- TODO: change to send multiple tactics
         else:
             return None
         

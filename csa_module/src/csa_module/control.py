@@ -40,15 +40,16 @@ class ControlComponent(object):
 
         # Flags
         self.directive_recieved = False
+        self.issue_tactic_request = False
         self.tactic_recieved = False
+        self.issue_ctrl_directive = False
         self.response_revieved = False
         self.failure = False
-        self.success = False
         
         # Variables
         self.cur_id = 0
         self.directive = None
-        self.tact_directive = None
+        self.tactics_request = None
         self.tactic = None
         self.ctrl_directive = None
         self.response = None
@@ -63,10 +64,11 @@ class ControlComponent(object):
         
         # Set flags and certain variables for the current loop
         self.directive_recieved = False
-        self.tactic_directive = None
+        self.issue_tactic_request = False
         self.tactic_recieved = False
+        self.issue_ctrl_directive = False
         self.response_recieved = False
-        self.success = False
+        self.tactics_request = None
         self.response = None
         
         # Get relevent information from the other components' inputs
@@ -92,32 +94,43 @@ class ControlComponent(object):
         
         # Wait for a new directive from arbitration
         if self.state == "standby":
+            
             if self.directive_recieved:
-                self.tactic_directive = [self.directive, self.system_state]
+                self.issue_tactic_request = True
+                self.tactics_request = [self.directive, self.system_state]
                 self.state = "planning"
+                
             else:
                 pass
         
         # Wait for tactics component to return a tactic
         elif self.state == "planning":
+            
             if self.tactic_recieved and not self.failure:
                 self.state = "execution"
+                
             elif self.tactic_recieved and self.failure:
                 self.state = "failure"
+                
             elif not self.tactic_recieved:
                 pass
                 
         
         # Execute the directive using the returned tactic
         elif self.state == "execution":
+            
             if self.directive_recieved: # TODO: improve this?
-                self.compute_control_directive()
-                self.tactic_directive = [self.directive, self.system_state]
+                self.issue_tactic_request = True
+                self.tactics_request = [self.directive, self.system_state]
                 self.state = "planning"
+                
             elif not self.response_recieved:
                 self.compute_control_directive()
+                self.issue_ctrl_directive = True # <--TODO: change this?
+                
             elif self.response_recieved and self.failure:
                 self.state = "failure"
+                
             elif self.response_recieved and self.success:
                 self.state = "standby"
             
@@ -154,13 +167,14 @@ class ControlComponent(object):
             pass
             
         else:
+            # TODO: fix this section
             # See if tactics failed
-            if tactic_msg.status == "failure":
-                self.failure = True
+            #if tactic_msg.status == "failure":
+                #self.failure = True
             
             # Store the received tactic
-            else:
-                self.tactic = tactic_msg
+            #else:
+            self.tactic = tactic_msg
                 
             # Set flag
             self.tactic_recieved = True
@@ -195,29 +209,24 @@ class ControlComponent(object):
         the module
         """
         
-        # Handle the control directive outputs
-        if self.ctrl_directive is None:
-            to_cmd = None
-        elif self.failure or self.success:
-            to_cmd = None
-        else:
+        to_arb = None
+        to_tact = None
+        to_cmd = None
+        
+        # Issue a control directive
+        if self.issue_ctrl_directive:
             to_cmd = self.ctrl_directive
             
-        # Handle a request to the tactic component for a tactic
-        if self.tactic_directive is None:
-            to_tact = None
-        else:
-            to_tact = self.tactic_directive
+        # Request a tactic from the tactic component
+        if self.issue_tactic_request:
+            to_tact = self.tactics_request
             
-        # Handle issuance of a response to the arbitration component
-        if self.response_recieved:
-            if self.failure:
+        # Respond to the arbitration component
+        if self.response_recieved and self.failure:
                 fail_msg = self.response.reject_msg
                 to_arb = create_response_msg(self.cur_id, "failure", fail_msg)
-            else:
+        elif self.response_recieved and not self.failure:
                 to_arb = create_response_msg(self.cur_id, "success", "")
-        else:
-            to_arb = None
             
         return [to_arb, to_tact, to_cmd]
         

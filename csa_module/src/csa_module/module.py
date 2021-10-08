@@ -17,6 +17,9 @@ import _thread as thread
 
 import rospy
 
+# Import local path to find components
+sys.path.append(sys.path[0] + "/csa_module")
+
 from arbitration import ArbitrationComponent
 from control import ControlComponent
 from csa_msgs.msg import Directive, Response
@@ -57,7 +60,7 @@ class CSAModule(object):
         tactics_algorithm = functions["tactic_selection"]
         
         # Setup the components
-        self.arbitration = ArbitrationComponent(arb_algorithm)
+        self.arbitration = ArbitrationComponent(name, arb_algorithm)
         self.control = ControlComponent()
         self.tactics = TacticsComponent(tactics_algorithm)
         #TODO: Activity Manager
@@ -90,8 +93,11 @@ class CSAModule(object):
         # Setup information for default subscriptions
         self.commands_topic = self.name + "/commands"
         self.responses_topic = self.name + "/responses"
-        self.state_topic = state_topic[0]
-        self.state_format = state_topic[1]
+        
+        # Setup state information topic
+        for key,value in state_topic.items():
+            self.state_topic = key
+            self.state_format = value
         
         # Initialize common subscriptions
         self.command_sub = rospy.Subscriber(self.commands_topic,
@@ -161,8 +167,8 @@ class CSAModule(object):
                                           self.ctrl_to_arb)
         ctrl_output = self.control.run(self.arb_to_ctrl,
                                        self.tact_to_ctrl,
-                                       self.state,
-                                       self.response)
+                                       self.response,
+                                       self.state)
         tact_output = self.tactics.run(self.ctrl_to_tact)
         
         # Store internal messages needed for the next loop
@@ -175,16 +181,16 @@ class CSAModule(object):
         response = arb_output[1]
         directive = ctrl_output[2]
         
-        # Publish directive and response messages if their is one
+        # Publish directive and response messages if there is one
         # TODO: handle multiple messages of same type to multiple
         #       locations
         if response is not None:
             response_dest = response.destination
-            self.publishers[response_dest].publisher(response)
+            self.publishers[response_dest].publish(response)
         
         if directive is not None:
             directive_dest = directive.destination
-            self.publishers[directive_dest].publisher(directive)
+            self.publishers[directive_dest].publish(directive)
         
     def cleanup(self):
         """
