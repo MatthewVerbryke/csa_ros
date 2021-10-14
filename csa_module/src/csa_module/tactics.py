@@ -25,8 +25,6 @@ class TacticsComponent(object):
         - Selects and sets-up the appropriate tactic (or tactics) for 
           the given information
         - Returns this tactic to the control component
-    
-    TODO: Test member functions.
     """
     
     def __init__(self, tactics_algorithm):
@@ -60,7 +58,7 @@ class TacticsComponent(object):
     def handle_request_message(self, ctrl_msg):
         """
         Handle a tactics request from the control component, which
-        consisits of a arbitrated directive and the system state.
+        consists of a arbitrated directive and the system state.
         """
         
         # Handle the new tactics request

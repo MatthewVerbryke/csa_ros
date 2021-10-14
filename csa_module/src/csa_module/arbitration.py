@@ -132,8 +132,9 @@ class ArbitrationComponent(object):
             if len(self.directives) == 2:
                 self.response_to_cmd = "reject"
                 self.reject_msg = "Tried to append a third directive"
+                
+            # Store directive
             else:
-                # Store directive
                 self.directives.update({directive.header.seq: directive})
                 self.directive_recieved = True
             

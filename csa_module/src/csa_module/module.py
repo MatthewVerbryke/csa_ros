@@ -17,21 +17,16 @@ import _thread as thread
 
 import rospy
 
-# Import local path to find components
-sys.path.append(sys.path[0] + "/csa_module")
-
-from arbitration import ArbitrationComponent
-from control import ControlComponent
+from csa_module.arbitration import ArbitrationComponent
+from csa_module.control import ControlComponent
 from csa_msgs.msg import Directive, Response
-from tactics import TacticsComponent
+from csa_module.tactics import TacticsComponent
 
 
 class CSAModule(object):
     """
     A generic CSA type module object. This is not meant to be run
     independently, but instead, be used as an inherited class.
-    
-    TODO: Test
     """
     
     def __init__(self, name, functions):
@@ -191,6 +186,10 @@ class CSAModule(object):
         if directive is not None:
             directive_dest = directive.destination
             self.publishers[directive_dest].publish(directive)
+            
+        # Purge command and response callbacks for the next loop
+        self.command = None
+        self.response = None
         
     def cleanup(self):
         """
