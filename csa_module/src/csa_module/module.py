@@ -65,12 +65,6 @@ class CSAModule(object):
         self.response = None
         self.state = None
         
-        # Create empty internal messages holding variables
-        self.arb_to_ctrl = None
-        self.ctrl_to_arb = None
-        self.ctrl_to_tact = None
-        self.tact_to_ctrl = None
-        
         # Signal completion
         rospy.loginfo("Module components initialized")
         
@@ -152,40 +146,39 @@ class CSAModule(object):
         
     def run(self):
         """
-        Run the components of the module once.
+        Run the components of the module in the proper order.
         
+        TODO: Rework subcomponents to work with this
         TODO: Investigate running components in parallel
         """
         
-        # Run each component of the module
-        arb_output = self.arbitration.run(self.command,
-                                          self.ctrl_to_arb)
-        ctrl_output = self.control.run(self.arb_to_ctrl,
-                                       self.tact_to_ctrl,
+        # Handle new input directive(s)
+        arb_output = self.arbitration.arbitrate_directive(self.command)
+        if arb_output[1] is not None:
+            destination = arb_output[1].destination
+            self.publishers[destination].publisher(arb_output[1])
+        
+        # TODO: handle responses in activity manager
+        
+        # Pass inputs to CTRL
+        ctrl_output = self.control.run(arb_output[0],
                                        self.response,
                                        self.state)
-        tact_output = self.tactics.run(self.ctrl_to_tact)
         
-        # Store internal messages needed for the next loop
-        self.arb_to_ctrl = arb_output[0]
-        self.ctrl_to_arb = ctrl_output[0]
-        self.ctrl_to_tact = ctrl_output[1]
-        self.tact_to_ctrl = tact_output
+        # If new tactic needed, give to TACT and return output to CTRL
+        if ctrl_output[1] is not None:
+            tact_output = self.tactics.run(ctrl_output[1])
+            self.control.set_tactic(tact_output)
         
-        # Get the messages to publish to other modules
-        response = arb_output[1]
-        directive = ctrl_output[2]
+        # Send response(s) to commanding module(s)
+        if ctrl_output[0] is not None:
+            response_dest = ctrl_output[0].destination
+            self.publishers[response_dest].publish(ctrl_output[0])
         
-        # Publish directive and response messages if there is one
-        # TODO: handle multiple messages of same type to multiple
-        #       locations
-        if response is not None:
-            response_dest = response.destination
-            self.publishers[response_dest].publish(response)
-        
-        if directive is not None:
-            directive_dest = directive.destination
-            self.publishers[directive_dest].publish(directive)
+        # Send command(s) to commanded modules(s)
+        if ctrl_output[2] is not None:
+            directive_dest = ctrl_output[2].destination
+            self.publishers[directive_dest].publish(ctrl_output[2])
             
         # Purge command and response callbacks for the next loop
         self.command = None
