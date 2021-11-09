@@ -56,7 +56,7 @@ class ControlComponent(object):
         self.system_state = None
         self.state = "standby"
 
-    def run(self, arb_msg, tact_msg, response_msg, state_msg):
+    def run(self, arb_msg, response_msg, state_msg):
         """
         Run the component once, reading in messages from the other
         components and updating the internal state machine
@@ -156,7 +156,7 @@ class ControlComponent(object):
             # Set flag
             self.directive_recieved = True
         
-    def handle_tactic_return(self, tactic_msg):
+    def set_tactic(self, tactic_msg):
         """
         Handle a return message from the tactics component of the 
         module.

@@ -27,6 +27,8 @@ class CSAModule(object):
     """
     A generic CSA type module object. This is not meant to be run
     independently, but instead, be used as an inherited class.
+    
+    TODO: Re-Test
     """
     
     def __init__(self, name, functions):

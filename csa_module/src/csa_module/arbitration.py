@@ -39,89 +39,27 @@ class ArbitrationComponent(object):
         
         # Flags
         self.directive_recieved = False
-        self.response_recieved = False
         self.more_directives = False
         self.issue_directive = False
-        self.response_to_cmd = None
         self.failure = False
         
         # Variables
         self.directives = {}
+        self.arb_directive = None
         self.cur_id = 0
         self.response = None
-        self.merged_directive = None
-        self.current_priority = 0
-        self.state = "standby"
-        
-    def run(self, directive_msg, ctrl_msg):
-        """
-        Run the component once, reading in messages from the other
-        components and updating the internal state machine.
-        """
-        
-        # Set flags and certain variables for the current loop
-        self.directive_recieved = False
-        self.response_recieved = False
-        self.issue_directive = False
         self.response_to_cmd = None
-        self.new_directive = None
-        self.old_directive = None
-        self.response = None
-        
-        # Handle input messages from ctrl and the commanding module
-        self.handle_new_directive(directive_msg)
-        self.handle_ctrl_response(ctrl_msg)
-        
-        # Run the state machine once
-        self.run_state_machine()
-        
-        # Create/Publish output messages
-        output = self.handle_output_messages()
-        
-        return output
-        
-    def run_state_machine(self):
-        """
-        Run through the state machine once.
-        """
-        
-        # Wait for a new directive from the commanding module
-        if self.state == "standby":
-            
-            if self.directive_recieved:
-                self.merge_directives()
-                self.state = "waiting"
-                
-            else:
-                pass
-                
-        # Wait for ctrl to respond with a status on the directive
-        elif self.state == "waiting":
-            
-            if not self.directive_recieved and not self.response_recieved:
-                pass
-                
-            elif self.directive_recieved:
-                self.merge_directives()
-                
-            elif self.response_recieved and self.failure:
-                self.state = "failure"
-                
-            elif self.response_recieved and len(self.directives) == 0:
-                self.state = "standby"
-                
-            elif self.response_recieved and len(self.directives) == 1:
-                self.merge_directives()
-
-        # Coordinate with commanding module on failures
-        elif self.state == "failure":
-            self.state = "standby"
-            #TODO: determine if next directive can be substituted
     
     def handle_new_directive(self, directive):
         """
         Handle directive inputs from commanding module(s).
         """
+        
+        # Set flags and certain variables for the current function run
+        self.directive_recieved = False
+        self.issue_directive = False
+        self.response_to_cmd = None
+        self.new_directive = None 
         
         # Handle the new directive
         if directive is None:
@@ -132,31 +70,45 @@ class ArbitrationComponent(object):
             if len(self.directives) == 2:
                 self.response_to_cmd = "reject"
                 self.reject_msg = "Tried to append a third directive"
-                
-            # Store directive
+            
+            # Add the new directive to the list and merge the new list
             else:
                 self.directives.update({directive.header.seq: directive})
                 self.directive_recieved = True
+                self.merge_directives()
             
             # Store new directive (even if rejected)
             self.new_directive = directive
-            
-    def handle_ctrl_response(self, response):
+                
+        # Create output message to CTRL and the commanding module
+        output = self.create_output_messages()
+        
+        return output
+    
+    def handle_ctrl_response(self, response_msg):
         """
         Handle a response from the control component of the module.
         """
+        
+        # Set flags and certain variables for the current loop
+        self.response_to_cmd = None
+        self.old_directive = None
+        self.response = None
         
         # Handle the new response
         if response is None:
             pass
         
         else:
-            # Check if the commanded directive succeded or failed
+            # Check for a failed directive
             if response.status == "failure":
                 self.failure = True
+                
+            # If success remerge the directives list
             elif response.status == "success":
                 self.old_directive = self.directives[self.cur_id]
                 self.directives.pop(self.cur_id)
+                self.merge_directives()
         
             # Set flags
             self.response_to_cmd = "complete"
@@ -164,8 +116,10 @@ class ArbitrationComponent(object):
             # Store the response
             self.response = response
             
-            # Set flag
-            self.response_recieved = True
+            # Create output message to CTRL and commanding module
+            output = self.create_output_messages()
+            
+            return output
             
     def merge_directives(self):
         """
@@ -193,7 +147,7 @@ class ArbitrationComponent(object):
             self.response_to_cmd = "reject"
             self.reject_msg = action[1]
             
-    def handle_output_messages(self):
+    def create_output_messages(self):
         """
         Assemble and return output messages for the component.
         """
