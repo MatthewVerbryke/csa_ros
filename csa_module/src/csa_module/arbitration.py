@@ -3,7 +3,7 @@
 """
   CSA module arbitration component source code.
   
-  Copyright 2021 University of Cincinnati
+  Copyright 2021-2022 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/gazebo_terrain
   Additional copyright may be held by others, as reflected in the commit
@@ -96,16 +96,16 @@ class ArbitrationComponent(object):
         self.response = None
         
         # Handle the new response
-        if response is None:
+        if response_msg is None:
             pass
         
         else:
             # Check for a failed directive
-            if response.status == "failure":
+            if response_msg.status == "failure":
                 self.failure = True
                 
             # If success remerge the directives list
-            elif response.status == "success":
+            elif response_msg.status == "success":
                 self.old_directive = self.directives[self.cur_id]
                 self.directives.pop(self.cur_id)
                 self.merge_directives()
@@ -114,7 +114,7 @@ class ArbitrationComponent(object):
             self.response_to_cmd = "complete"
             
             # Store the response
-            self.response = response
+            self.response = response_msg
             
             # Create output message to CTRL and commanding module
             output = self.create_output_messages()

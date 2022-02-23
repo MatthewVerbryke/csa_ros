@@ -151,11 +151,11 @@ class CSAModule(object):
         Run the components of the module in the proper order.
         
         TODO: Rework subcomponents to work with this
-        TODO: Investigate running components in parallel
+        TODO: Add activity manager
         """
         
         # Handle new input directive(s)
-        arb_output = self.arbitration.arbitrate_directive(self.command)
+        arb_output = self.arbitration.handle_new_directive(self.command)
         if arb_output[1] is not None:
             destination = arb_output[1].destination
             self.publishers[destination].publisher(arb_output[1])
@@ -174,15 +174,17 @@ class CSAModule(object):
         
         # Send response(s) to commanding module(s)
         if ctrl_output[0] is not None:
-            response_dest = ctrl_output[0].destination
-            self.publishers[response_dest].publish(ctrl_output[0])
+            arb_output = self.arbritration.handle_ctrl_response(ctrl_output[0])
+            response_dest = arb_output[1].destination
+            self.publishers[response_dest].publish(arb_output[1])
         
         # Send command(s) to commanded modules(s)
+        #TODO: rework this to use activity manager component
         if ctrl_output[2] is not None:
             directive_dest = ctrl_output[2].destination
             self.publishers[directive_dest].publish(ctrl_output[2])
             
-        # Purge command and response callbacks for the next loop
+        # Purge command and response callbacks for next loop
         self.command = None
         self.response = None
         
