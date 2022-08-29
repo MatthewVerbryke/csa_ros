@@ -8,6 +8,8 @@
   https://github.com/MatthewVerbryke/gazebo_terrain
   Additional copyright may be held by others, as reflected in the commit
   history.
+  
+  TODO: Test
 """
 
 
@@ -37,152 +39,111 @@ class ArbitrationComponent(object):
         self.module_name = module_name
         self.merge_algorithm = merge_algorithm
         
-        # Flags
-        self.directive_recieved = False
-        self.more_directives = False
-        self.issue_directive = False
-        self.failure = False
+        # Initialize other parameters
+        self.cur_id = -1
+        self.cur_directive = None
+        self.max = 2
         
-        # Variables
+        # Initialize storage variables
         self.directives = {}
-        self.arb_directive = None
-        self.cur_id = 0
-        self.response = None
-        self.response_to_cmd = None
-    
-    def handle_new_directive(self, directive):
+       
+    def process_new_directive(self, directive):
         """
         Handle directive inputs from commanding module(s).
         """
         
-        # Set flags and certain variables for the current function run
-        self.directive_recieved = False
-        self.issue_directive = False
-        self.response_to_cmd = None
-        self.new_directive = None 
+        # Reject new directives over the capacity limit
+        if len(self.directives) == self.max:
+            is_okay = False
+            msg = "Tried to append more than {} directives".format(self.max)
         
-        # Handle the new directive
-        if directive is None:
-            pass
-            
-        else:            
-            # Reject new directive if we already have two in storage
-            if len(self.directives) == 2:
-                self.response_to_cmd = "reject"
-                self.reject_msg = "Tried to append a third directive"
-            
-            # Add the new directive to the list and merge the new list
-            else:
-                self.directives.update({directive.header.seq: directive})
-                self.directive_recieved = True
-                self.merge_directives()
-            
-            # Store new directive (even if rejected)
-            self.new_directive = directive
-                
-        # Create output message to CTRL and the commanding module
-        output = self.create_output_messages()
+        # TODO: Add more basic checks here
+        #elif
         
-        return output
-    
-    def handle_ctrl_response(self, response_msg):
-        """
-        Handle a response from the control component of the module.
-        """
-        
-        # Set flags and certain variables for the current loop
-        self.response_to_cmd = None
-        self.old_directive = None
-        self.response = None
-        
-        # Handle the new response
-        if response_msg is None:
-            pass
-        
+        # Store the new directive
         else:
-            # Check for a failed directive
-            if response_msg.status == "failure":
-                self.failure = True
-                
-            # If success remerge the directives list
-            elif response_msg.status == "success":
-                self.old_directive = self.directives[self.cur_id]
-                self.directives.pop(self.cur_id)
-                self.merge_directives()
+            self.directives.update({directive.header.seq: directive})
+            is_okay = True
+            msg = ""
+            
+        return is_okay, msg
+       
+    def get_response_to_commander(self, directive, msg_type, msg):
+        """
+        Build a response message to the commanding module.
+        """
         
-            # Set flags
-            self.response_to_cmd = "complete"
-            
-            # Store the response
-            self.response = response_msg
-            
-            # Create output message to CTRL and commanding module
-            output = self.create_output_messages()
-            
-            return output
-            
+        # Create a response message
+        response_msg = create_response_msg(directive.header.seq,
+                                           self.module_name,
+                                           directive.source,
+                                           msg_type,
+                                           msg)
+        
+        return response_msg
+        
     def merge_directives(self):
         """
-        Run the merging algorithm and determine what to do with the 
-        result.
+        Merge the directives stored in the module to get an arbitrated
+        directive to send to control.
         """
         
-        # Merge the current list of directives
-        action, directive = self.merge_algorithm.run(self.directives)
-        
-        # Option 1: Setup the new directive to be issued
-        if action[0] == "issue":
-            self.issue_directive = True
-            self.arb_directive = directive
-            self.cur_id = directive.header.seq
-            if self.directive_recieved:
-                self.response_to_cmd = "accept"
-        
-        # Option 2: Accept but continue with current directive
-        elif action[0] == "continue":
-            self.response_to_cmd = "accept"
+        # Merge the directives to get an arbitrated directive
+        arb_directive = self.merge_algorithm.run(self.directives)
             
-        # Option 3: Reject the directive
-        elif action[0] == "reject":
-            self.response_to_cmd = "reject"
-            self.reject_msg = action[1]
-            
-    def create_output_messages(self):
-        """
-        Assemble and return output messages for the component.
-        """
-        
-        to_ctrl = None
-        to_cmd = None
-        
-        # Issue a merged directive
-        if self.issue_directive:
-            to_ctrl = self.arb_directive
-        
-        # Respond to the commanding module
-        if self.response_to_cmd == "complete" and not self.failure:
-            to_cmd = create_response_msg(self.old_directive.header.seq,
-                                         self.module_name,
-                                         self.old_directive.source,
-                                         "success",
-                                         "")
-        elif self.response_to_cmd == "complete" and self.failure:
-            to_cmd = create_response_msg(self.directives[self.cur_id].header.seq,
-                                         self.module_name,
-                                         self.directives[self.cur_id].source,
-                                         "failure",
-                                         self.response.reject_msg)
-        elif self.response_to_cmd == "accept":
-            to_cmd = create_response_msg(self.new_directive.header.seq,
-                                         self.module_name,
-                                         self.new_directive.source,
-                                         "accept",
-                                         "")
-        elif self.response_to_cmd == "reject":
-            to_cmd = create_response_msg(self.new_directive.header.seq,
-                                         self.module_name,
-                                         self.new_directive.source,
-                                         "failure",
-                                         self.reject_msg)
+        # Check whether to issue the directive or not
+        if arb_directive.id != self.cur_id:
+            self.cur_id = arb_directive.id
+            self.cur_directive = arb_directive
+        else:
+            pass
                 
-        return [to_ctrl, to_cmd]
+        return self.cur_directive
+        
+    def run(self, directive, response):
+        """
+        Run the component, based on the case most appropriate for the 
+        current state of the component
+        """
+        
+        arb_directive = None
+        cmdr_msg = None
+        
+        # Process new directive
+        if directive is not None:
+            is_okay, msg = self.process_new_directive(directive)
+            
+            # Respond to commanding module(s)
+            if is_okay:
+                msg_type = "accept"
+            else:
+                msg_type = "reject"
+            cmdr_msg = self.get_response_to_commander(directive, msg_type, msg)
+            
+            # Arbitrate over directives
+            if is_okay:
+                arb_directive = self.merge_directives()
+       
+        # Process new response
+        elif response is not None:
+            if response.status == "failure":
+                self.failure = True
+                self.msg_type = response.status
+                self.msg = response.reject_msg
+            elif response.status == "success":
+                self.msg_type = response.status
+                self.msg = ""
+            
+            # Respond to commanding module(s)
+            cmdr_msg = self.get_response_to_commander(self.cur_directive, msg_type, msg)
+            
+            # Cleanup directive
+            if not failure:
+                self.directives.pop(self.cur_id)
+                
+                # Arbitrate over directives
+                arb_directive = self.merge_directives()
+                
+            #TODO: need to handle 'if failure:'
+
+        return arb_directive, cmdr_msg
