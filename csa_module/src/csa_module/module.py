@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
   CSA module main module python source code.
@@ -20,7 +20,6 @@ import rospy
 from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
 from csa_msgs.msg import Directive, Response
-from csa_module.tactics import TacticsComponent
 
 
 class CSAModule(object):
@@ -31,7 +30,7 @@ class CSAModule(object):
     TODO: Re-Test
     """
     
-    def __init__(self):
+    def __init__(self, name, rate, arb_algorithm, tact_algorithm):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -47,19 +46,12 @@ class CSAModule(object):
         self.lock = threading.Lock()
         
         # Get module parameters
-        self.name = rospy.get_param("~name", "")
-        self.rate = rospy.get_param("~rate", 100.0)
-        self.system = rospy.get_param("~robot", "")
-        self.ref_frame = rospy.get_param("~reference_frame", "world")
-        
-        # Get the necessary component functions
-        arb_algorithm = rospy.get_param("arb_function")
-        tact_algorithm = rospy.get_param("tact_function")
-        
+        self.name = name
+        self.rate = rate
+
         # Setup the components
-        self.arbitration = ArbitrationComponent(name, arb_algorithm)
-        self.control = ControlComponent(tact_algorithm)
-        #self.tactics = TacticsComponent(tactics_algorithm)
+        self.arbitration = ArbitrationComponent(self.name, arb_algorithm)
+        self.control = ControlComponent(self.name, tact_algorithm)
         #TODO: Activity Manager
         
         # Create empty subscribers callback holding variables
@@ -69,9 +61,6 @@ class CSAModule(object):
         
         # Signal completion
         rospy.loginfo("Module components initialized")
-        
-        # start runing module
-        self.run()
         
     def initialize_communications(self, state_topic, pub_topics):
         """

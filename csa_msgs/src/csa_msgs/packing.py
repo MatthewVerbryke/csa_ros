@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
   Functions for direct packing/unpacking of 'csa_msgs' types into JSON

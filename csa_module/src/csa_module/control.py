@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
   CSA module control component source code.
@@ -37,7 +37,7 @@ class ControlComponent(object):
     TODO: Test
     """
     
-    def __init__(self):
+    def __init__(self, module_name, tactic_algorithm):
 
         # Initialize variables
         self.cur_id = 0
@@ -49,7 +49,7 @@ class ControlComponent(object):
         self.continuous = False
         
         # Initialize tactics component
-        self.tactics_component = TacticsComponent(None) #<-- TODO: fix this
+        self.tactics_component = TacticsComponent(tactics_algorithm) #<-- TODO: fix this
         
     def get_response_to_arbiration(self, mode):
         """
