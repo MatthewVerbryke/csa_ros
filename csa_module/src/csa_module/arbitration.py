@@ -8,8 +8,6 @@
   https://github.com/MatthewVerbryke/gazebo_terrain
   Additional copyright may be held by others, as reflected in the commit
   history.
-  
-  TODO: Test
 """
 
 
@@ -43,6 +41,7 @@ class ArbitrationComponent(object):
         self.cur_id = -1
         self.cur_directive = None
         self.max = 2
+        self.failure = False
         
         # Initialize storage variables
         self.directives = {}
@@ -56,7 +55,7 @@ class ArbitrationComponent(object):
         if len(self.directives) == self.max:
             is_okay = False
             msg = "Tried to append more than {} directives".format(self.max)
-        
+            
         # TODO: Add more basic checks here
         #elif
         
@@ -65,7 +64,7 @@ class ArbitrationComponent(object):
             self.directives.update({directive.header.seq: directive})
             is_okay = True
             msg = ""
-            
+        
         return is_okay, msg
        
     def get_response_to_commander(self, directive, msg_type, msg):
@@ -90,15 +89,14 @@ class ArbitrationComponent(object):
         
         # Merge the directives to get an arbitrated directive
         arb_directive = self.merge_algorithm.run(self.directives)
-            
+        
         # Check whether to issue the directive or not
-        if arb_directive.id != self.cur_id:
-            self.cur_id = arb_directive.id
+        if arb_directive.header.seq!= self.cur_id:
+            self.cur_id = arb_directive.header.seq
             self.cur_directive = arb_directive
+            return arb_directive
         else:
-            pass
-                
-        return self.cur_directive
+            return None
         
     def run(self, directive, response):
         """
@@ -128,22 +126,25 @@ class ArbitrationComponent(object):
         elif response is not None:
             if response.status == "failure":
                 self.failure = True
-                self.msg_type = response.status
-                self.msg = response.reject_msg
+                msg_type = response.status
+                msg = response.reject_msg
             elif response.status == "success":
-                self.msg_type = response.status
-                self.msg = ""
+                msg_type = response.status
+                msg = ""
             
             # Respond to commanding module(s)
             cmdr_msg = self.get_response_to_commander(self.cur_directive, msg_type, msg)
             
             # Cleanup directive
-            if not failure:
-                self.directives.pop(self.cur_id)
+            if not self.failure:
+                self.directives.pop(response.header.seq)
                 
                 # Arbitrate over directives
-                arb_directive = self.merge_directives()
+                if len(self.directives) != 0:
+                    arb_directive = self.merge_directives()
                 
             #TODO: need to handle 'if failure:'
+            else:
+                print("TODO")
 
         return arb_directive, cmdr_msg

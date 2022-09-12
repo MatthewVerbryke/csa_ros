@@ -26,8 +26,6 @@ class CSAModule(object):
     """
     A generic CSA type module object. This is not meant to be run
     independently, but instead, be used as an inherited class.
-    
-    TODO: Re-Test
     """
     
     def __init__(self, name, rate, arb_algorithm, tact_algorithm):
@@ -47,7 +45,7 @@ class CSAModule(object):
         
         # Get module parameters
         self.name = name
-        self.rate = rate
+        self.rate = rospy.Rate(rate)
 
         # Setup the components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm)
@@ -138,13 +136,13 @@ class CSAModule(object):
         self.state = msg
         self.lock.release()
         
-    def run(self):
+    def run_once(self):
         """
-        Run the components of the module in the proper order.
+        Run the components of the module in the proper order once.
         """
         
         # Check if we have a new directive/command
-        arb_output = self.arbitration.run(self.command)
+        arb_output = self.arbitration.run(self.command, self.response)
         arb_directive = arb_output[0]
         arb_response = arb_output[1]
         
@@ -155,7 +153,7 @@ class CSAModule(object):
         
         # Check for a new response
         # TODO: Run activity manager
-
+        
         # Run Control
         ctrl_output = self.control.run(arb_directive, self.response, self.state)
         ctrl_directive = ctrl_output[0]
@@ -176,6 +174,17 @@ class CSAModule(object):
         # Purge command and response callbacks for next loop
         self.command = None
         self.response = None
+        
+    def run(self):
+        """
+        Keep looping through the module while rospy is running
+        """
+        
+        # Main loop
+        rospy.loginfo("'{}' node is running...".format(self.name))
+        while not rospy.is_shutdown():
+            self.run_once()
+            self.rate.sleep()
         
     def cleanup(self):
         """
