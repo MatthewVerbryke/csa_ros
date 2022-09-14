@@ -37,7 +37,7 @@ class ControlComponent(object):
     TODO: Test
     """
     
-    def __init__(self, module_name, tactic_algorithm):
+    def __init__(self, module_name, tactics_algorithm):
 
         # Initialize variables
         self.cur_id = 0
@@ -71,6 +71,9 @@ class ControlComponent(object):
         current state of the component
         """
         
+        arb_response = None
+        ctrl_directive = None
+        
         # Check if we have a new directive
         if directive is not None:
             new_directive = True
@@ -84,14 +87,16 @@ class ControlComponent(object):
             new_response = False
             
         # Handle getting a new directive while standing-by
-        if not self.exectuing and new_directive:
+        if not self.executing and new_directive:
             
             # Get a tactic from the tactics component
-            tactic, success = self.get_tactic(directive, state)
+            tactic, success = self.tactics_component.run(directive, state)
             
             # Get and issue a control directive with tactic
             if success:
-                ctrl_directive = self.tactic.get_directive(tactic, state)
+                self.directive = directive
+                self.tactic = tactic
+                ctrl_directive = self.tactic.run(state)
                 self.executing = True
             else:
                 pass #TODO: Handle failure to find tactic
@@ -105,7 +110,9 @@ class ControlComponent(object):
             
             # Get and issue a control directive with tactic
             if success:
-                ctrl_directive = self.tactic.get_directive(tactic, state)
+                self.directive = directive
+                self.tactic = tactic
+                ctrl_directive = self.tactic.run(state)
                 # TODO: is a smoothing/transition necessary?
             else:
                 pass #TODO: Handle failure to find tactic           
@@ -114,7 +121,7 @@ class ControlComponent(object):
         elif self.executing and new_response:
             
             # Get relevant information from response
-            resp_id = response.header.id
+            resp_id = response.header.seq
             resp_status = response.status
             
             # Handle the response
@@ -129,7 +136,8 @@ class ControlComponent(object):
                 pass #TODO: Handle a failure in the current directive
         
         # Do nothing
+        #TODO: continous feeding of ctrl directives
         else:
             pass
-            
+        
         return arb_response, ctrl_directive

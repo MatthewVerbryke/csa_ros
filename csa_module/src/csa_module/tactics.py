@@ -41,8 +41,6 @@ class TacticsComponent(object):
         """
         
         # Handle a new tactic request
-        if self.request_recieved:
-            tactic = self.tactics_algorithm.run(directive, state)
-            return tactic[0] #<-- TODO: change to send multiple tactics
-        else:
-            return None
+        tactic, success = self.tactics_algorithm.run(directive, state)
+        
+        return tactic, success #<-- TODO: change to send multiple tactics
