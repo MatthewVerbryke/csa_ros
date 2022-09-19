@@ -46,7 +46,7 @@ class CSAModule(object):
         # Get module parameters
         self.name = name
         self.rate = rospy.Rate(rate)
-
+        
         # Setup the components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm)
         self.control = ControlComponent(self.name, tact_algorithm)
@@ -72,8 +72,8 @@ class CSAModule(object):
         self.publishers = {}
         
         # Setup information for default subscriptions
-        self.commands_topic = self.name + "/commands"
-        self.responses_topic = self.name + "/responses"
+        self.commands_topic = self.name + "/command"
+        self.responses_topic = self.name + "/response"
         
         # Setup state information topic
         for key,value in state_topic.items():
@@ -91,13 +91,13 @@ class CSAModule(object):
                                           self.state_format,
                                           self.state_callback)
         
-        # Setup all required publishers
+        # Setup all required command publishers for other modules
         for key,value in pub_topics.items():
             if value == Directive:
-                topic = key + "/commands"
+                topic = key + "/command"
                 entry = {key: rospy.Publisher(topic, Directive, queue_size=1)}
             elif value == Response:
-                topic = key + "/responses"
+                topic = key + "/response"
                 entry = {key: rospy.Publisher(topic, Response, queue_size=1)}
                                               
             # Add to storage dictionary
@@ -121,7 +121,7 @@ class CSAModule(object):
         Callback function for response messages to this module.
         """
         
-        # Store incoming command messages
+        # Store incoming response messages
         self.lock.acquire()
         self.response = msg
         self.lock.release()
@@ -131,7 +131,7 @@ class CSAModule(object):
         Callback function for state messages from the state estimator.
         """
         
-        # Store incoming command messages
+        # Store incoming state messages
         self.lock.acquire()
         self.state = msg
         self.lock.release()
@@ -139,17 +139,19 @@ class CSAModule(object):
     def run_once(self):
         """
         Run the components of the module in the proper order once.
+        
+        TODO: Rework this section
         """
         
         # Check if we have a new directive/command
-        arb_output = self.arbitration.run(self.command, self.response)
+        arb_output = self.arbitration.run(self.command, None)
         arb_directive = arb_output[0]
         arb_response = arb_output[1]
         
         # Response to comanding module (if necessary)
         if arb_directive is not None:
-            destination = arb_repsonse.destination
-            self.publishers[destination].publisher(arb_response)
+            destination = arb_response.destination
+            self.publishers[destination].publish(arb_response)
         
         # Check for a new response
         # TODO: Run activity manager
@@ -158,19 +160,18 @@ class CSAModule(object):
         ctrl_output = self.control.run(arb_directive, self.response, self.state)
         ctrl_directive = ctrl_output[0]
         ctrl_response = ctrl_output[1]
-        
         #TODO: Run activity manager
         
         # Issue command(s)
         if ctrl_directive is not None:
             destination = ctrl_directive.destination
-            self.publishers[destination].publisher(ctrl_directive)
+            self.publishers[destination].publish(ctrl_directive)
         
         # Respond to commanding module if necessary
         if ctrl_response is not None:
             destination = ctrl_response.destination
-            self.publishers[destination].publisher(ctrl_response)
-        
+            self.publishers[destination].publish(ctrl_response)
+            
         # Purge command and response callbacks for next loop
         self.command = None
         self.response = None

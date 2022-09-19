@@ -29,10 +29,10 @@ def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params
     
     # Create the header
     msg.header = Header()
-    msg.header.seq = id_num
     msg.header.stamp = rospy.Time.now()
     
     # Build message from inputs
+    msg.id = id_num
     msg.name = name
     msg.description = desc
     msg.source = src

@@ -33,8 +33,6 @@ class ControlComponent(object):
         - Monitors system state infomation for the whole module
         - Reports success/failure of the merged directive to the 
           arbitration component
-          
-    TODO: Test
     """
     
     def __init__(self, module_name, tactics_algorithm):
@@ -79,7 +77,7 @@ class ControlComponent(object):
             new_directive = True
         else:
             new_directive = False
-            
+        
         # Check is we have a new response
         if response is not None:
             new_response = True
@@ -121,7 +119,7 @@ class ControlComponent(object):
         elif self.executing and new_response:
             
             # Get relevant information from response
-            resp_id = response.header.seq
+            resp_id = response.id
             resp_status = response.status
             
             # Handle the response

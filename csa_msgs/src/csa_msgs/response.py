@@ -17,7 +17,7 @@ from std_msgs.msg import Header
 from csa_msgs.msg import Response
 
 
-def create_response_msg(seq_num, src, dest, status, reject_msg):
+def create_response_msg(id_num, src, dest, status, reject_msg):
     """
     Build a "Response" message from the input data.
     """
@@ -27,10 +27,10 @@ def create_response_msg(seq_num, src, dest, status, reject_msg):
     
     # Create the header
     msg.header = Header()
-    msg.header.seq = seq_num
     msg.header.stamp = rospy.Time.now()
     
     # Build message from inputs
+    msg.id = id_num
     msg.source = src
     msg.destination = dest
     msg.status = status

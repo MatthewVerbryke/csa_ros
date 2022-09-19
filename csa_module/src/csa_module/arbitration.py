@@ -73,7 +73,7 @@ class ArbitrationComponent(object):
         """
         
         # Create a response message
-        response_msg = create_response_msg(directive.header.seq,
+        response_msg = create_response_msg(directive.id,
                                            self.module_name,
                                            directive.source,
                                            msg_type,
@@ -91,7 +91,7 @@ class ArbitrationComponent(object):
         arb_directive = self.merge_algorithm.run(self.directives)
         
         # Check whether to issue the directive or not
-        if arb_directive.header.seq!= self.cur_id:
+        if arb_directive.id!= self.cur_id:
             self.cur_id = arb_directive.header.seq
             self.cur_directive = arb_directive
             return arb_directive
@@ -137,7 +137,7 @@ class ArbitrationComponent(object):
             
             # Cleanup directive
             if not self.failure:
-                self.directives.pop(response.header.seq)
+                self.directives.pop(response.id)
                 
                 # Arbitrate over directives
                 if len(self.directives) != 0:
