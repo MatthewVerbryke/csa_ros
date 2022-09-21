@@ -169,8 +169,10 @@ class CSAModule(object):
         
         # Respond to commanding module if necessary
         if ctrl_response is not None:
-            destination = ctrl_response.destination
-            self.publishers[destination].publish(ctrl_response)
+            arb_output = self.arbitration.run(None, ctrl_response)
+            arb_response = arb_output[1]
+            destination = arb_response.destination
+            self.publishers[destination].publish(arb_response)
             
         # Purge command and response callbacks for next loop
         self.command = None

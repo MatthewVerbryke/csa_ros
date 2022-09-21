@@ -138,4 +138,4 @@ class ControlComponent(object):
         else:
             pass
         
-        return arb_response, ctrl_directive
+        return ctrl_directive, arb_response

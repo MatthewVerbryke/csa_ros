@@ -3,7 +3,7 @@
 """
   CSA module tactics component source code.
   
-  Copyright 2021 University of Cincinnati
+  Copyright 2021-2022 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/gazebo_terrain
   Additional copyright may be held by others, as reflected in the commit
