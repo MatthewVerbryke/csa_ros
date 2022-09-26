@@ -149,7 +149,7 @@ class CSAModule(object):
         arb_response = arb_output[1]
         
         # Response to comanding module (if necessary)
-        if arb_directive is not None:
+        if arb_response is not None:
             destination = arb_response.destination
             self.publishers[destination].publish(arb_response)
         

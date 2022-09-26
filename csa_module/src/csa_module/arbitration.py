@@ -51,8 +51,13 @@ class ArbitrationComponent(object):
         Handle directive inputs from commanding module(s).
         """
         
+        # Ignore if we got the directive already
+        if directive.id in self.directives.keys():
+            is_okay = True
+            msg = "ignore"        
+        
         # Reject new directives over the capacity limit
-        if len(self.directives) == self.max:
+        elif len(self.directives) == self.max:
             is_okay = False
             msg = "Tried to append more than {} directives".format(self.max)
             
@@ -61,7 +66,7 @@ class ArbitrationComponent(object):
         
         # Store the new directive
         else:
-            self.directives.update({directive.header.seq: directive})
+            self.directives.update({directive.id: directive})
             is_okay = True
             msg = ""
         
@@ -72,12 +77,17 @@ class ArbitrationComponent(object):
         Build a response message to the commanding module.
         """
         
-        # Create a response message
-        response_msg = create_response_msg(directive.id,
-                                           self.module_name,
-                                           directive.source,
-                                           msg_type,
-                                           msg)
+        # Don't make a message if we are told to ignore
+        if msg == "ignore":
+            response_msg = None
+            
+        # Create a response message    
+        else:
+            response_msg = create_response_msg(directive.id,
+                                               self.module_name,
+                                               directive.source,
+                                               msg_type,
+                                               msg)
         
         return response_msg
         
@@ -106,7 +116,7 @@ class ArbitrationComponent(object):
         
         arb_directive = None
         cmdr_msg = None
-        
+        print(self.directives.keys())
         # Process new directive
         if directive is not None:
             is_okay, msg = self.process_new_directive(directive)
@@ -146,5 +156,5 @@ class ArbitrationComponent(object):
             #TODO: need to handle 'if failure:'
             else:
                 print("TODO")
-
+        
         return arb_directive, cmdr_msg

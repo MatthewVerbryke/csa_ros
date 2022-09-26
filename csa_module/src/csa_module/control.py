@@ -38,7 +38,7 @@ class ControlComponent(object):
     def __init__(self, module_name, tactics_algorithm):
 
         # Initialize variables
-        self.cur_id = 0
+        self.cur_id = 1
         self.directive = None
         self.tactic = None
         
@@ -55,7 +55,7 @@ class ControlComponent(object):
         """
         
         # Create a response message
-        response_msg = create_response_msg(self.directive.header.seq,
+        response_msg = create_response_msg(self.directive.id,
                                            "",
                                            self.directive.source,
                                            mode,
@@ -119,7 +119,6 @@ class ControlComponent(object):
         elif self.executing and new_response:
             
             # Get relevant information from response
-            resp_id = response.id
             resp_status = response.status
             
             # Handle the response
