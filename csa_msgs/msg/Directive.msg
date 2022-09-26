@@ -1,5 +1,8 @@
-# Directive header (directive ID, time transmitted, frame of reference)
+# Directive header (time transmitted, frame of reference)
 Header header
+#
+# Directive ID
+int32 id
 #
 # Action name
 string name

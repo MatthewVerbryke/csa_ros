@@ -1,5 +1,8 @@
-# Response header (directive ID, time transmitted, frame of reference)
+# Response header (time transmitted, frame of reference)
 Header header
+#
+# Directive ID
+int32 id
 #
 # Node source of the response
 string source

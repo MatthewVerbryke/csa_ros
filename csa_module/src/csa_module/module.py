@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
   CSA module main module python source code.
   
-  Copyright 2021 University of Cincinnati
+  Copyright 2022 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/gazebo_terrain
   Additional copyright may be held by others, as reflected in the commit
@@ -13,14 +13,13 @@
 
 import os
 import sys
-import _thread as thread
+import threading
 
 import rospy
 
 from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
 from csa_msgs.msg import Directive, Response
-from csa_module.tactics import TacticsComponent
 
 
 class CSAModule(object):
@@ -29,7 +28,7 @@ class CSAModule(object):
     independently, but instead, be used as an inherited class.
     """
     
-    def __init__(self, name, functions):
+    def __init__(self, name, rate, arb_algorithm, tact_algorithm):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -42,34 +41,21 @@ class CSAModule(object):
         rospy.on_shutdown(self.cleanup)
         
         # Get a lock
-        self.lock = thread.allocate_lock()
+        self.lock = threading.Lock()
         
         # Get module parameters
         self.name = name
-        self.rate = rospy.get_param("~rate", 100.0)
-        self.system = rospy.get_param("~robot", "")
-        self.ref_frame = rospy.get_param("~reference_frame", "world")
-        
-        # Get the necessary component functions
-        arb_algorithm = functions["arbitration"]
-        tactics_algorithm = functions["tactic_selection"]
+        self.rate = rospy.Rate(rate)
         
         # Setup the components
-        self.arbitration = ArbitrationComponent(name, arb_algorithm)
-        self.control = ControlComponent()
-        self.tactics = TacticsComponent(tactics_algorithm)
+        self.arbitration = ArbitrationComponent(self.name, arb_algorithm)
+        self.control = ControlComponent(self.name, tact_algorithm)
         #TODO: Activity Manager
         
         # Create empty subscribers callback holding variables
         self.command = None
         self.response = None
         self.state = None
-        
-        # Create empty internal messages holding variables
-        self.arb_to_ctrl = None
-        self.ctrl_to_arb = None
-        self.ctrl_to_tact = None
-        self.tact_to_ctrl = None
         
         # Signal completion
         rospy.loginfo("Module components initialized")
@@ -86,8 +72,8 @@ class CSAModule(object):
         self.publishers = {}
         
         # Setup information for default subscriptions
-        self.commands_topic = self.name + "/commands"
-        self.responses_topic = self.name + "/responses"
+        self.commands_topic = self.name + "/command"
+        self.responses_topic = self.name + "/response"
         
         # Setup state information topic
         for key,value in state_topic.items():
@@ -105,13 +91,13 @@ class CSAModule(object):
                                           self.state_format,
                                           self.state_callback)
         
-        # Setup all required publishers
+        # Setup all required command publishers for other modules
         for key,value in pub_topics.items():
             if value == Directive:
-                topic = key + "/commands"
+                topic = key + "/command"
                 entry = {key: rospy.Publisher(topic, Directive, queue_size=1)}
             elif value == Response:
-                topic = key + "/responses"
+                topic = key + "/response"
                 entry = {key: rospy.Publisher(topic, Response, queue_size=1)}
                                               
             # Add to storage dictionary
@@ -135,7 +121,7 @@ class CSAModule(object):
         Callback function for response messages to this module.
         """
         
-        # Store incoming command messages
+        # Store incoming response messages
         self.lock.acquire()
         self.response = msg
         self.lock.release()
@@ -145,51 +131,63 @@ class CSAModule(object):
         Callback function for state messages from the state estimator.
         """
         
-        # Store incoming command messages
+        # Store incoming state messages
         self.lock.acquire()
         self.state = msg
         self.lock.release()
         
-    def run(self):
+    def run_once(self):
         """
-        Run the components of the module once.
+        Run the components of the module in the proper order once.
         
-        TODO: Investigate running components in parallel
+        TODO: Rework this section
         """
         
-        # Run each component of the module
-        arb_output = self.arbitration.run(self.command,
-                                          self.ctrl_to_arb)
-        ctrl_output = self.control.run(self.arb_to_ctrl,
-                                       self.tact_to_ctrl,
-                                       self.response,
-                                       self.state)
-        tact_output = self.tactics.run(self.ctrl_to_tact)
+        # Check if we have a new directive/command
+        arb_output = self.arbitration.run(self.command, None)
+        arb_directive = arb_output[0]
+        arb_response = arb_output[1]
         
-        # Store internal messages needed for the next loop
-        self.arb_to_ctrl = arb_output[0]
-        self.ctrl_to_arb = ctrl_output[0]
-        self.ctrl_to_tact = ctrl_output[1]
-        self.tact_to_ctrl = tact_output
+        # Response to comanding module (if necessary)
+        if arb_response is not None:
+            destination = arb_response.destination
+            self.publishers[destination].publish(arb_response)
         
-        # Get the messages to publish to other modules
-        response = arb_output[1]
-        directive = ctrl_output[2]
+        # Check for a new response
+        # TODO: Run activity manager
         
-        # Publish directive and response messages if there is one
-        # TODO: handle multiple messages of same type to multiple
-        #       locations
-        if response is not None:
-            response_dest = response.destination
-            self.publishers[response_dest].publish(response)
+        # Run Control
+        ctrl_output = self.control.run(arb_directive, self.response, self.state)
+        ctrl_directive = ctrl_output[0]
+        ctrl_response = ctrl_output[1]
+        #TODO: Run activity manager
         
-        if directive is not None:
-            directive_dest = directive.destination
-            self.publishers[directive_dest].publish(directive)
+        # Issue command(s)
+        if ctrl_directive is not None:
+            destination = ctrl_directive.destination
+            self.publishers[destination].publish(ctrl_directive)
+        
+        # Respond to commanding module if necessary
+        if ctrl_response is not None:
+            arb_output = self.arbitration.run(None, ctrl_response)
+            arb_response = arb_output[1]
+            destination = arb_response.destination
+            self.publishers[destination].publish(arb_response)
             
-        # Purge command and response callbacks for the next loop
+        # Purge command and response callbacks for next loop
         self.command = None
         self.response = None
+        
+    def run(self):
+        """
+        Keep looping through the module while rospy is running
+        """
+        
+        # Main loop
+        rospy.loginfo("'{}' node is running...".format(self.name))
+        while not rospy.is_shutdown():
+            self.run_once()
+            self.rate.sleep()
         
     def cleanup(self):
         """
