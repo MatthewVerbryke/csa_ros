@@ -5,7 +5,7 @@
   
   Copyright 2021-2022 University of Cincinnati
   All rights reserved. See LICENSE file at:
-  https://github.com/MatthewVerbryke/gazebo_terrain
+  https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
   history.
 """
@@ -31,18 +31,23 @@ class ArbitrationComponent(object):
         - Report status back to commanding module
     """
     
-    def __init__(self, module_name, merge_algorithm):
+    def __init__(self, module_name, merge_algorithm, default_directive):
         
         # Get Parameters
         self.module_name = module_name
         self.merge_algorithm = merge_algorithm
         
-        # Initialize other parameters
+        # Setup default directive
+        self.default_directive = default_directive
+        self.default_directive.id = -1
         self.cur_id = -1
+        
+        # Initialize other parameters
         self.cur_directive = None
         self.max = 2
+        self.standby = True
         self.failure = False
-        
+                
         # Initialize storage variables
         self.directives = {}
        
@@ -80,7 +85,7 @@ class ArbitrationComponent(object):
         # Don't make a message if we are told to ignore
         if msg == "ignore":
             response_msg = None
-            
+        
         # Create a response message    
         else:
             response_msg = create_response_msg(directive.id,
@@ -102,7 +107,7 @@ class ArbitrationComponent(object):
         
         # Check whether to issue the directive or not
         if arb_directive.id!= self.cur_id:
-            self.cur_id = arb_directive.header.seq
+            self.cur_id = arb_directive.id
             self.cur_directive = arb_directive
             return arb_directive
         else:
@@ -116,7 +121,7 @@ class ArbitrationComponent(object):
         
         arb_directive = None
         cmdr_msg = None
-        print(self.directives.keys())
+        
         # Process new directive
         if directive is not None:
             is_okay, msg = self.process_new_directive(directive)
@@ -131,6 +136,7 @@ class ArbitrationComponent(object):
             # Arbitrate over directives
             if is_okay:
                 arb_directive = self.merge_directives()
+                self.standby = False
        
         # Process new response
         elif response is not None:
@@ -143,7 +149,9 @@ class ArbitrationComponent(object):
                 msg = ""
             
             # Respond to commanding module(s)
-            cmdr_msg = self.get_response_to_commander(self.cur_directive, msg_type, msg)
+            cmdr_msg = self.get_response_to_commander(self.cur_directive,
+                                                      msg_type,
+                                                      msg)
             
             # Cleanup directive
             if not self.failure:
@@ -153,8 +161,27 @@ class ArbitrationComponent(object):
                 if len(self.directives) != 0:
                     arb_directive = self.merge_directives()
                 
+                # Issue default directive if no stored directive
+                else:
+                    arb_directive = self.default_directive
+                    self.cur_directive = self.default_directive
+                    self.cur_id = -1
+                    self.standby = True
+                
             #TODO: need to handle 'if failure:'
             else:
                 print("TODO")
+            
+        # Determine what to do with no response or new directive
+        else:
+            if self.standby:
+                if self.cur_directive.id == -1:
+                    pass
+                else:
+                    arb_directive = self.default_directive
+                    self.cur_directive = self.default_directive
+                    self.cur_id = -1
+            else:
+                pass
         
         return arb_directive, cmdr_msg

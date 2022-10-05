@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 """
-  CSA module main module python source code.
+  CSA module main module source code.
   
   Copyright 2022 University of Cincinnati
   All rights reserved. See LICENSE file at:
-  https://github.com/MatthewVerbryke/gazebo_terrain
+  https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
   history.
 """
@@ -28,7 +28,7 @@ class CSAModule(object):
     independently, but instead, be used as an inherited class.
     """
     
-    def __init__(self, name, rate, arb_algorithm, tact_algorithm):
+    def __init__(self, name, rate, arb_algorithm, tact_algorithm, default_directive):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -48,7 +48,7 @@ class CSAModule(object):
         self.rate = rospy.Rate(rate)
         
         # Setup the components
-        self.arbitration = ArbitrationComponent(self.name, arb_algorithm)
+        self.arbitration = ArbitrationComponent(self.name, arb_algorithm, default_directive)
         self.control = ControlComponent(self.name, tact_algorithm)
         #TODO: Activity Manager
         
