@@ -3,9 +3,9 @@
 """
   Functions for working with a CSA "Directive" type message.
   
-  Copyright 2021 University of Cincinnati
+  Copyright 2021-2022 University of Cincinnati
   All rights reserved. See LICENSE file at:
-  https://github.com/MatthewVerbryke/rse_dam
+  https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
   history.
 """
@@ -17,11 +17,10 @@ from std_msgs.msg import Header
 from csa_msgs.msg import Directive
 
 
-def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params):
+def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params,
+                         frame):
     """
     Build a "Directive" message from the input data.
-    
-    TODO: Figure out how we will handle directives
     """
     
     # Create the message
@@ -30,6 +29,8 @@ def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params
     # Create the header
     msg.header = Header()
     msg.header.stamp = rospy.Time.now()
+    if frame is not None:
+        msg.header.frame_id = frame
     
     # Build message from inputs
     msg.id = id_num
@@ -39,6 +40,6 @@ def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params
     msg.destination = dest
     msg.response_time = t_resp
     msg.priority = priority
-    #msg.params = Params() #TODO: Update this
+    msg.params = params
     
     return msg

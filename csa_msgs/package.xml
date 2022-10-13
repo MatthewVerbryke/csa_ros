@@ -3,27 +3,30 @@
   <name>csa_msgs</name>
   <version>0.0.0</version>
   <description>The csa_msgs package</description>
-
+  
   <maintainer email="verbrymr@mail.uc.edu">Matthew Verbryke</maintainer>
-
+  
   <license>BSD</license>
-
+  
   <author email="verbrymr@mail.uc.edu">Matthew Verbryke</author>
   
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>
-
+  
+  <build_depend>diagnostic_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>moveit_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
-
+  
+  <build_export_depend>diagnostic_msgs</build_export_depend>
   <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>moveit_msgs</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
-
+  
+  <exec_depend>diagnostic_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>roscpp</exec_depend>
@@ -31,5 +34,5 @@
   
   <export>
   </export>
-
+  
 </package>
