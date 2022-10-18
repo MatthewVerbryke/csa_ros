@@ -48,18 +48,55 @@ class ControlComponent(object):
         
         # Initialize tactics component
         self.tactics_component = TacticsComponent(tactics_algorithm) #<-- TODO: fix this
+    
+    def request_tactic(self, directive, state):
+        """
+        Request a tactic for the current state and directive, and handle 
+        the outcome.
+        """
         
-    def get_response_to_arbiration(self, mode):
+        # Get tactic from the tactics component
+        tactic, success = self.tactics_component.run(directive, state)
+        
+        # If successful, store tactic and new directive
+        if success:
+            response = None
+            self.directive = directive
+            self.tactic = tactic
+        
+        # Handle failure to find tactic
+        else:
+            msg = "Failed to find tactic"
+            response = self.get_response_to_arbiration("failure", msg, directive)
+            self.directive = None
+            self.tactic = None
+        
+        return success, response
+        
+    def attempt_replan(self):
+        """
+        
+        """
+        pass
+        
+    def get_response_to_arbiration(self, mode, msg, directive=None):
         """
         Build a response message to the commanding module.
         """
         
-        # Create a response message
-        response_msg = create_response_msg(self.directive.id,
-                                           "",
-                                           self.directive.source,
-                                           mode,
-                                           "")
+        frame = None #<-- TODO: Change this?
+        
+        # Determine whether to use arg directive or stored directive
+        if directive is None:
+            id_num = self.directive.id
+            source = self.directive.source
+        else:
+            id_num = directive.id
+            source = directive.source
+        
+        # Create response message
+        response_msg = create_response_msg(id_num, source, "", mode, msg, None,
+                                           frame)
         
         return response_msg
         
@@ -72,68 +109,55 @@ class ControlComponent(object):
         arb_response = None
         ctrl_directive = None
         
-        # Check if we have a new directive
+        # Check if there is new directive
         if directive is not None:
             new_directive = True
         else:
             new_directive = False
         
-        # Check is we have a new response
+        # Check if there is new response
         if response is not None:
             new_response = True
         else:
             new_response = False
-            
-        # Handle getting a new directive while standing-by
-        if not self.executing and new_directive:
-            
-            # Get a tactic from the tactics component
-            tactic, success = self.tactics_component.run(directive, state)
-            
-            # Get and issue a control directive with tactic
-            if success:
-                self.directive = directive
-                self.tactic = tactic
-                ctrl_directive = self.tactic.run(state)
-                self.executing = True
-            else:
-                pass #TODO: Handle failure to find tactic
         
-        # Handle getting a new directive while executing
+        # Handle getting new directive while standing-by
+        if not self.executing and new_directive:
+            got_tact, arb_response = self.request_tactic(directive, state)
+            if got_tact:            
+                got_dir, ctrl_directive = self.tactic.run(state)
+                self.executing = True
+        
+        # Handle getting new directive while executing
         elif self.executing and new_directive:
-            
-            # Get a tactic from the tactics component
-            # #NOTE: Currently same as above, but will change
-            tactic, success = self.tactics_component.run(directive, state)
-            
-            # Get and issue a control directive with tactic
-            if success:
-                self.directive = directive
-                self.tactic = tactic
-                ctrl_directive = self.tactic.run(state)
-                # TODO: is a smoothing/transition necessary?
+            got_tact, arb_response = self.request_tactic(directive, state)
+            if got_tact:
+                got_dir, ctrl_directive = self.tactic.run(state)
             else:
-                pass #TODO: Handle failure to find tactic           
+                self.executing = False       
                 
-        # Handle a new response on the current control directive
+        # Handle new response on current control directive
         elif self.executing and new_response:
-            
-            # Get relevant information from response
-            resp_status = response.status
-            
-            # Handle the response
-            if resp_status == "success":
-                arb_response = self.get_response_to_arbiration("success")
-                if new_directive:
-                    pass #TODO: change?
-                else:
+            if response.status == "success":
+                arb_response = self.get_response_to_arbiration("success", "",
+                                                               directive)
+                
+                # Standby if no new directive
+                if not new_directive:
                     self.directive = None
                     self.executing = False
+                    
+            # Handle failure in current directive        
             else:
-                pass #TODO: Handle a failure in the current directive
+                got_replan, ctrl_directive = self.attempt_replan()
+                if got_replan:
+                    pass
+                else:
+                    msg = "Failure in current directive"
+                    arb_response = self.get_response_to_arbiration("fail", msg,
+                                                                   directive)
         
         # Do nothing
-        #TODO: continous feeding of ctrl directives
         else:
             pass
         
