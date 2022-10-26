@@ -46,7 +46,6 @@ class ArbitrationComponent(object):
         self.cur_directive = None
         self.max = 2
         self.standby = True
-        self.failure = False
                 
         # Initialize storage variables
         self.directives = {}
@@ -76,7 +75,23 @@ class ArbitrationComponent(object):
             msg = ""
         
         return is_okay, msg
-       
+        
+    def process_new_response(self, response):
+        """
+        Handle response messages from the module's control component.
+        """
+        
+        # Get info out of response
+        if response.success = "success":
+            success = True
+            msg = ""
+        elif response.success = "failure":
+            success = False
+            msg = response.reject_msg
+            # TODO: determine more about the failure?
+        
+        return success, msg
+    
     def get_response_to_commander(self, directive, msg_type, msg):
         """
         Build a response message to the commanding module.
@@ -96,6 +111,27 @@ class ArbitrationComponent(object):
         
         return response_msg
         
+    def issue_default_directive(self):
+        """
+        Return the default directive, while also setting all relevant
+        variables.
+        """
+        
+        # Make sure we are in standby mode
+        self.standby = True
+        
+        # If already issued don't issue it again
+        if self.cur_directive.id == -1:
+            return None
+            
+        # Store info from default directive
+        else:
+            self.cur_directive = self.default_directive
+            self.cur_id = -1
+            self.standby = True
+        
+            return self.default_directive
+        
     def merge_directives(self):
         """
         Merge the directives stored in the module to get an arbitrated
@@ -112,7 +148,7 @@ class ArbitrationComponent(object):
             return arb_directive
         else:
             return None
-        
+    
     def run(self, directive, response):
         """
         Run the component, based on the case most appropriate for the 
@@ -126,7 +162,7 @@ class ArbitrationComponent(object):
         if directive is not None:
             is_okay, msg = self.process_new_directive(directive)
             
-            # Respond to commanding module(s)
+            # Get response to commanding module(s)
             if is_okay:
                 msg_type = "accept"
             else:
@@ -140,47 +176,30 @@ class ArbitrationComponent(object):
        
         # Process new response
         elif response is not None:
-            if response.status == "failure":
-                self.failure = True
-                msg_type = response.status
-                msg = response.reject_msg
-            elif response.status == "success":
-                msg_type = response.status
-                msg = ""
+            success, msg = self.process_new_response(response)
             
-            # Respond to commanding module(s)
-            cmdr_msg = self.get_response_to_commander(self.cur_directive,
-                                                      msg_type,
+            # Get response to commanding module(s)
+            if success:
+                msg_type = "success"
+            else:
+                msg_type = "failure"
+            cmdr_msg = self.get_response_to_commander(self.directive, msg_type,
                                                       msg)
             
-            # Cleanup directive
-            if not self.failure:
-                self.directives.pop(response.id)
-                
-                # Arbitrate over directives
-                if len(self.directives) != 0:
-                    arb_directive = self.merge_directives()
-                
-                # Issue default directive if no stored directive
-                else:
-                    arb_directive = self.default_directive
-                    self.cur_directive = self.default_directive
-                    self.cur_id = -1
-                    self.standby = True
-                
-            #TODO: need to handle 'if failure:'
-            else:
-                print("TODO")
+            # Cleanup the completed/failed directive
+            self.directives.pop(self.directive.id == None)
+            self.directive = None
             
+            # Arbitrate over remaining directives or issue default
+            if len(self.directives) != 0:
+                arb_directive = self.merge_directives()
+            else:
+                arb_directive = self.issue_default_directive()
+        
         # Determine what to do with no response or new directive
         else:
             if self.standby:
-                if self.cur_directive.id == -1:
-                    pass
-                else:
-                    arb_directive = self.default_directive
-                    self.cur_directive = self.default_directive
-                    self.cur_id = -1
+                arb_directive = self.issue_default_directive()
             else:
                 pass
         
