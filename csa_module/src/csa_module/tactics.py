@@ -41,4 +41,4 @@ class TacticsComponent(object):
         # Handle a new tactic request
         tactic, success = self.tactics_algorithm.run(directive, state)
         
-        return tactic, success #<-- TODO: change to send multiple tactics
+        return success, tactic #<-- TODO: change to send multiple tactics

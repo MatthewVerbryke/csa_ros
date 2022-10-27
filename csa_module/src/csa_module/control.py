@@ -67,19 +67,73 @@ class ControlComponent(object):
         # Handle failure to find tactic
         else:
             msg = "Failed to find tactic"
-            response = self.get_response_to_arbiration("failure", msg, directive)
+            response = self.get_response_to_arbitration("failure", msg, directive)
             self.directive = None
             self.tactic = None
         
         return success, response
         
+    def create_control_directive(self, state):
+        """
+        Given the current system state, create a control directive to 
+        issue to a commanded module.
+        """
+        
+        # Create control directive
+        got_dir, ctrl_directive = self.tactic.run(state)
+        
+        # Handle successfully finding control directive
+        if got_dir:
+            arb_response = None
+            if not self.executing:
+                self.executing = True
+            
+        # Handle failure to create control directive
+        # TODO: expand?
+        else:
+            ctrl_directive = None
+            msg = "Failed to get control directive"
+            arb_response = self.get_response_to_arbitration(self.directive,
+                                                            "failure",
+                                                            msg)
+            
+            # Set system to standby
+            self.executing = False
+        
+        return ctrl_directive, arb_response
+        
+    def process_new_response(self, response):
+        """
+        Handle response messages from commanded modules.
+        """
+        
+        # Get info out of response
+        if response.status == "success":
+            success = True
+            msg = ""
+            self.directive = None
+            self.executing = False
+        elif response.status == "failure":
+            success = False
+            msg = response.reject_msg
+            # TODO: determine more about the failure?
+            
+        # Build response to arbitration
+        arb_response = self.get_response_to_arbitration(self.directive,
+                                                        response.status,
+                                                        msg)
+        
+        return success, arb_response
+        
     def attempt_replan(self):
         """
-        
+        TODO
         """
-        pass
+        self.executing = False
+        self.directive = None
+        return False, None
         
-    def get_response_to_arbiration(self, mode, msg, directive=None):
+    def get_response_to_arbitration(self, directive, mode, msg):
         """
         Build a response message to the commanding module.
         """
@@ -95,7 +149,12 @@ class ControlComponent(object):
             source = directive.source
         
         # Create response message
-        response_msg = create_response_msg(id_num, source, "", mode, msg, None,
+        response_msg = create_response_msg(id_num,
+                                           source,
+                                           "",
+                                           mode,
+                                           msg,
+                                           None,
                                            frame)
         
         return response_msg
@@ -109,53 +168,35 @@ class ControlComponent(object):
         arb_response = None
         ctrl_directive = None
         
-        # Check if there is new directive
-        if directive is not None:
-            new_directive = True
-        else:
-            new_directive = False
-        
-        # Check if there is new response
-        if response is not None:
-            new_response = True
-        else:
-            new_response = False
-        
         # Handle getting new directive while standing-by
-        if not self.executing and new_directive:
-            got_tact, arb_response = self.request_tactic(directive, state)
-            if got_tact:            
-                got_dir, ctrl_directive = self.tactic.run(state)
-                self.executing = True
-        
-        # Handle getting new directive while executing
-        elif self.executing and new_directive:
+        if not self.executing and directive is not None:
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
-                got_dir, ctrl_directive = self.tactic.run(state)
+                ctrl_directive, arb_response = self.create_control_directive(
+                    state)            
+            else:
+                pass
+        
+        # Handle getting new directive while executing
+        elif self.executing and directive is not None:
+            got_tact, arb_response = self.request_tactic(directive, state)
+            if got_tact:
+                ctrl_directive, arb_response = self.create_control_directive(
+                    state)
             else:
                 self.executing = False       
                 
         # Handle new response on current control directive
-        elif self.executing and new_response:
-            if response.status == "success":
-                arb_response = self.get_response_to_arbiration("success", "",
-                                                               directive)
-                
-                # Standby if no new directive
-                if not new_directive:
-                    self.directive = None
-                    self.executing = False
-                    
-            # Handle failure in current directive        
-            else:
+        elif self.executing and response is not None:
+            success, arb_response = self.process_new_response(response)
+            
+            # Try to replan if failure in current directive        
+            if not success:
                 got_replan, ctrl_directive = self.attempt_replan()
                 if got_replan:
-                    pass
+                    arb_response = None
                 else:
-                    msg = "Failure in current directive"
-                    arb_response = self.get_response_to_arbiration("fail", msg,
-                                                                   directive)
+                    pass
         
         # Do nothing
         else:
