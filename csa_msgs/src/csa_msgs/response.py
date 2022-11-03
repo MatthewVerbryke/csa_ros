@@ -37,6 +37,11 @@ def create_response_msg(id_num, src, dest, status, reject_msg, params, frame):
     msg.destination = dest
     msg.status = status
     msg.reject_msg = reject_msg
-    msg.params = params
+    
+    # Handle None parameter input
+    if params == None:
+        pass
+    else:
+        msg.params = params
     
     return msg

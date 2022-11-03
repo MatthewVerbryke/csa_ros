@@ -40,6 +40,11 @@ def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params
     msg.destination = dest
     msg.response_time = t_resp
     msg.priority = priority
-    msg.params = params
+    
+    # Handle None parameter input
+    if params == None:
+        pass
+    else:
+        msg.params = params
     
     return msg

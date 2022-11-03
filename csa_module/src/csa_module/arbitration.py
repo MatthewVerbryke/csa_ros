@@ -49,6 +49,7 @@ class ArbitrationComponent(object):
                 
         # Initialize storage variables
         self.directives = {}
+        self.hold_over = None
        
     def process_new_directive(self, directive):
         """
@@ -82,10 +83,10 @@ class ArbitrationComponent(object):
         """
         
         # Get info out of response
-        if response.success = "success":
+        if response.status == "success":
             success = True
             msg = ""
-        elif response.success = "failure":
+        elif response.status == "failure":
             success = False
             msg = response.reject_msg
             # TODO: determine more about the failure?
@@ -107,7 +108,9 @@ class ArbitrationComponent(object):
                                                self.module_name,
                                                directive.source,
                                                msg_type,
-                                               msg)
+                                               msg,
+                                               None,
+                                               None)
         
         return response_msg
         
@@ -121,14 +124,13 @@ class ArbitrationComponent(object):
         self.standby = True
         
         # If already issued don't issue it again
-        if self.cur_directive.id == -1:
+        if self.cur_directive is not None:
             return None
             
         # Store info from default directive
         else:
             self.cur_directive = self.default_directive
             self.cur_id = -1
-            self.standby = True
         
             return self.default_directive
         
@@ -171,9 +173,19 @@ class ArbitrationComponent(object):
             
             # Arbitrate over directives
             if is_okay:
-                arb_directive = self.merge_directives()
-                self.standby = False
-       
+                if msg != "ignore":
+                    arb_directive = self.merge_directives()
+                    self.standby = False
+                    
+                    # Delete hold-over if it exists
+                    self.hold_over = None
+        
+        # Handle "held over" directves if we didn't get new one
+        elif self.hold_over is not None:
+            arb_directive = self.hold_over
+            self.standby = False
+            self.hold_over = None
+        
         # Process new response
         elif response is not None:
             success, msg = self.process_new_response(response)
@@ -183,19 +195,19 @@ class ArbitrationComponent(object):
                 msg_type = "success"
             else:
                 msg_type = "failure"
-            cmdr_msg = self.get_response_to_commander(self.directive, msg_type,
-                                                      msg)
+            cmdr_msg = self.get_response_to_commander(self.cur_directive,
+                                                      msg_type, msg)
             
             # Cleanup the completed/failed directive
-            self.directives.pop(self.directive.id == None)
-            self.directive = None
+            self.directives.pop(response.id)
+            self.cur_directive = None
             
             # Arbitrate over remaining directives or issue default
             if len(self.directives) != 0:
-                arb_directive = self.merge_directives()
+                self.hold_over = self.merge_directives()
             else:
-                arb_directive = self.issue_default_directive()
-        
+                self.hold_over = self.issue_default_directive()
+            
         # Determine what to do with no response or new directive
         else:
             if self.standby:

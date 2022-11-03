@@ -38,7 +38,7 @@ class ControlComponent(object):
     def __init__(self, module_name, tactics_algorithm):
 
         # Initialize variables
-        self.cur_id = 1
+        self.cur_id = -2
         self.directive = None
         self.tactic = None
         
@@ -56,7 +56,7 @@ class ControlComponent(object):
         """
         
         # Get tactic from the tactics component
-        tactic, success = self.tactics_component.run(directive, state)
+        success, tactic = self.tactics_component.run(directive, state)
         
         # If successful, store tactic and new directive
         if success:
@@ -107,12 +107,14 @@ class ControlComponent(object):
         Handle response messages from commanded modules.
         """
         
+        # Make sure this is response to current directive
+        if self.cur_id != response.id:
+            return None, None
+        
         # Get info out of response
         if response.status == "success":
             success = True
             msg = ""
-            self.directive = None
-            self.executing = False
         elif response.status == "failure":
             success = False
             msg = response.reject_msg
@@ -122,6 +124,10 @@ class ControlComponent(object):
         arb_response = self.get_response_to_arbitration(self.directive,
                                                         response.status,
                                                         msg)
+                                                        
+        # Delete directive and turn off execution flag
+        self.directive = None
+        self.executing = False
         
         return success, arb_response
         
@@ -172,6 +178,7 @@ class ControlComponent(object):
         if not self.executing and directive is not None:
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
+                self.cur_id = directive.id
                 ctrl_directive, arb_response = self.create_control_directive(
                     state)            
             else:
@@ -181,6 +188,7 @@ class ControlComponent(object):
         elif self.executing and directive is not None:
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
+                self.cur_id = directive.id
                 ctrl_directive, arb_response = self.create_control_directive(
                     state)
             else:
@@ -190,13 +198,21 @@ class ControlComponent(object):
         elif self.executing and response is not None:
             success, arb_response = self.process_new_response(response)
             
-            # Try to replan if failure in current directive        
+            # Try to replan if failure in current directive 
             if not success:
                 got_replan, ctrl_directive = self.attempt_replan()
                 if got_replan:
                     arb_response = None
                 else:
                     pass
+            
+            # Ignore repeated messages for same directory
+            elif success is None:
+                pass
+            
+            # Set id to unused value if successful
+            else:
+                self.cur_id = -2
         
         # Do nothing
         else:
