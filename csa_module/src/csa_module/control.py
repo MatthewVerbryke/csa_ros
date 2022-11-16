@@ -135,6 +135,7 @@ class ControlComponent(object):
         """
         TODO
         """
+        
         self.executing = False
         self.directive = None
         return False, None
@@ -198,21 +199,21 @@ class ControlComponent(object):
         elif self.executing and response is not None:
             success, arb_response = self.process_new_response(response)
             
-            # Try to replan if failure in current directive 
-            if not success:
-                got_replan, ctrl_directive = self.attempt_replan()
-                if got_replan:
-                    arb_response = None
-                else:
-                    pass
+            # Set id to unused value if successful
+            if success:
+                self.cur_id = -2
             
             # Ignore repeated messages for same directory
             elif success is None:
                 pass
             
-            # Set id to unused value if successful
+            # Try to replan if failure in current directive 
             else:
-                self.cur_id = -2
+                got_replan, ctrl_directive = self.attempt_replan()
+                if got_replan:
+                    arb_response = None
+                else:
+                    pass
         
         # Do nothing
         else:
