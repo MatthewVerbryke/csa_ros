@@ -35,7 +35,7 @@ class CSAModule(object):
         
         # Initialize rospy node
         rospy.init_node(name)
-        rospy.loginfo("'{}' node initialized".format(name))
+        rospy.loginfo("'%s' node initialized", name)
         
         # Setup cleanup function
         rospy.on_shutdown(self.cleanup)
@@ -135,7 +135,7 @@ class CSAModule(object):
         self.lock.acquire()
         self.state = msg
         self.lock.release()
-        
+    
     def run_once(self):
         """
         Run the components of the module in the proper order once.
@@ -166,6 +166,8 @@ class CSAModule(object):
         if ctrl_directive is not None:
             destination = ctrl_directive.destination
             self.publishers[destination].publish(ctrl_directive)
+            rospy.loginfo("Issuing directive %s to '%s'", ctrl_directive.id,
+                destination)
         
         # Respond to commanding module if necessary
         if ctrl_response is not None:
@@ -184,7 +186,7 @@ class CSAModule(object):
         """
         
         # Main loop
-        rospy.loginfo("'{}' node is running...".format(self.name))
+        rospy.loginfo("'%s' node is running...", self.name)
         while not rospy.is_shutdown():
             self.run_once()
             self.rate.sleep()
@@ -196,4 +198,4 @@ class CSAModule(object):
         
         # Log shutdown of the module
         rospy.sleep(1)
-        rospy.loginfo("Shutting down '{}' node".format(self.name))
+        rospy.loginfo("Shutting down '%s' node", self.name)

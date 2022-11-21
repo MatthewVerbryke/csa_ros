@@ -59,13 +59,13 @@ class ArbitrationComponent(object):
         # Ignore if we got the directive already
         if directive.id in self.directives.keys():
             is_okay = True
-            msg = "ignore"        
+            msg = "ignore"
         
         # Reject new directives over the capacity limit
         elif len(self.directives) == self.max:
             is_okay = False
             msg = "Tried to append more than {} directives".format(self.max)
-            
+        
         # TODO: Add more basic checks here
         #elif
         
@@ -74,6 +74,13 @@ class ArbitrationComponent(object):
             self.directives.update({directive.id: directive})
             is_okay = True
             msg = ""
+            rospy.loginfo("Accepted directive %s from %s", directive.id,
+                directive.source)
+        
+        # Log failures with reasoning
+        if is_okay == False:
+            rospy.loginfo("Rejected directive %s from %s, reason: #s", 
+                direcitve.id, directive.source, msg)
         
         return is_okay, msg
         
@@ -131,6 +138,7 @@ class ArbitrationComponent(object):
         else:
             self.cur_directive = self.default_directive
             self.cur_id = -1
+            rospy.loginfo("Issuing default directive...")
         
             return self.default_directive
         
@@ -141,15 +149,21 @@ class ArbitrationComponent(object):
         """
         
         # Merge the directives to get an arbitrated directive
+        rospy.loginfo("Merging directives...")
         arb_directive = self.merge_algorithm.run(self.directives)
         
         # Check whether to issue the directive or not
         if arb_directive.id!= self.cur_id:
             self.cur_id = arb_directive.id
             self.cur_directive = arb_directive
-            return arb_directive
+            rospy.loginfo("Arbitration result: switching to directive %s",
+                self.cur_id)
         else:
-            return None
+            switch = False
+            arb_directive = None
+            rospy.loginfo("Arbitration result: continue")
+        
+        return arb_directive
     
     def run(self, directive, response):
         """

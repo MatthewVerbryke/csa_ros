@@ -56,6 +56,7 @@ class ControlComponent(object):
         """
         
         # Get tactic from the tactics component
+        rospy.loginfo("Requesting tactic for direcitve %s...", directive.id)
         success, tactic = self.tactics_component.run(directive, state)
         
         # If successful, store tactic and new directive
@@ -63,6 +64,7 @@ class ControlComponent(object):
             response = None
             self.directive = directive
             self.tactic = tactic
+            rospy.loginfo("Successfully got tactic")
         
         # Handle failure to find tactic
         else:
@@ -70,6 +72,7 @@ class ControlComponent(object):
             response = self.get_response_to_arbitration("failure", msg, directive)
             self.directive = None
             self.tactic = None
+            rospy.loginfo("Failed to get tactic")
         
         return success, response
         
@@ -87,18 +90,21 @@ class ControlComponent(object):
             arb_response = None
             if not self.executing:
                 self.executing = True
-            
+        
         # Handle failure to create control directive
         # TODO: expand?
         else:
-            ctrl_directive = None
             msg = "Failed to get control directive"
+            ctrl_directive = None
             arb_response = self.get_response_to_arbitration(self.directive,
                                                             "failure",
                                                             msg)
             
             # Set system to standby
             self.executing = False
+            
+            # Log failure to terminal/file
+            rospy.loginfo(msg + " for directive %s", self.directive.id)
         
         return ctrl_directive, arb_response
         
@@ -115,9 +121,12 @@ class ControlComponent(object):
         if response.status == "success":
             success = True
             msg = ""
+            rospy.loginfo("Directive %s execution succeded", self.directive.id)
         elif response.status == "failure":
             success = False
             msg = response.reject_msg
+            rospy.loginfo("Directive %s execution failed, reason: %s", 
+                self.directive.id, msg)
             # TODO: determine more about the failure?
             
         # Build response to arbitration
@@ -135,7 +144,7 @@ class ControlComponent(object):
         """
         TODO
         """
-        
+        rospy.loginfo("Attempting to replan (currently TODO)...")
         self.executing = False
         self.directive = None
         return False, None
