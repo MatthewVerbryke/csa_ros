@@ -1,17 +1,34 @@
-# csa_ros
+# Canonical Software Architecture (CSA) for ROS
 
 ## Summary
 
-This repository contains software to implement a modified version of JPL's Canonical Software Architecture (CSA) format with ROS using Python.
+This repository contains the implementation of a modified version of JPL's Canonical Software Architecture (CSA) format for ROS 1.0 using its Python interface. The CSA module format is intended to increase the modularity of autonomous system control architectures, while also enforcing a consistent and standardized structure. Also include are the rosmsg types for directive-response messages used in inter- and intra-module communication.
 
-Currently, this is very much a work in progress. The Directive/Response message formats and the absolute basic framework of the module subcomponents have been coded and tested. Come back later to see further progress.
+**NOTE**: The code in this repository is still very much a work in progress; check back for updates as development continues.
+
+## Recommended OS/Programs
+
+This software was developed and tested in:
+- Ubuntu 20.04 LTS
+- ROS Noetic
+- Python 3.8
+
+## Installation
+
+Clone the repository into your catkin workspace `src` directory. Then build the workspace in the root catkin directory using `catkin_make`.
+
+## Usage
+
+TODO
+
+## Future Work
 
 Next steps include:
-- Coding the structure of the overall module to utilize these subcomponents
-- Determine how parameters, rules, criteria, ... will be handled
-- Implementation of an activity managment component
-- Improving the capabilities of all the basic components
-- Better documentation on how it works
+- Expand communication protocols that can be utilized, including rosbridge/websockets
+- Implementation of an Activity Managment component
+- Further improvements to module/component code
+- Create a usage guide
+- Include an implemented example module
 
 ## License
 

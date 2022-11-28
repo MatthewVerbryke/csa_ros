@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 """
-  CSA module main module python source code.
+  CSA module main module source code.
   
   Copyright 2022 University of Cincinnati
   All rights reserved. See LICENSE file at:
-  https://github.com/MatthewVerbryke/gazebo_terrain
+  https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
   history.
 """
@@ -28,14 +28,14 @@ class CSAModule(object):
     independently, but instead, be used as an inherited class.
     """
     
-    def __init__(self, name, rate, arb_algorithm, tact_algorithm):
+    def __init__(self, name, rate, arb_algorithm, tact_algorithm, default_directive):
         
         # Get home directory
         self.home_dir = os.getcwd()
         
         # Initialize rospy node
         rospy.init_node(name)
-        rospy.loginfo("'{}' node initialized".format(name))
+        rospy.loginfo("'%s' node initialized", name)
         
         # Setup cleanup function
         rospy.on_shutdown(self.cleanup)
@@ -48,7 +48,7 @@ class CSAModule(object):
         self.rate = rospy.Rate(rate)
         
         # Setup the components
-        self.arbitration = ArbitrationComponent(self.name, arb_algorithm)
+        self.arbitration = ArbitrationComponent(self.name, arb_algorithm, default_directive)
         self.control = ControlComponent(self.name, tact_algorithm)
         #TODO: Activity Manager
         
@@ -135,7 +135,7 @@ class CSAModule(object):
         self.lock.acquire()
         self.state = msg
         self.lock.release()
-        
+    
     def run_once(self):
         """
         Run the components of the module in the proper order once.
@@ -166,6 +166,8 @@ class CSAModule(object):
         if ctrl_directive is not None:
             destination = ctrl_directive.destination
             self.publishers[destination].publish(ctrl_directive)
+            rospy.loginfo("Issuing directive %s to '%s'", ctrl_directive.id,
+                destination)
         
         # Respond to commanding module if necessary
         if ctrl_response is not None:
@@ -184,7 +186,7 @@ class CSAModule(object):
         """
         
         # Main loop
-        rospy.loginfo("'{}' node is running...".format(self.name))
+        rospy.loginfo("'%s' node is running...", self.name)
         while not rospy.is_shutdown():
             self.run_once()
             self.rate.sleep()
@@ -196,4 +198,4 @@ class CSAModule(object):
         
         # Log shutdown of the module
         rospy.sleep(1)
-        rospy.loginfo("Shutting down '{}' node".format(self.name))
+        rospy.loginfo("Shutting down '%s' node", self.name)
