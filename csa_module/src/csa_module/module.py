@@ -62,14 +62,14 @@ class CSAModule(object):
         
     def initialize_communications(self, state_topic, pub_topics):
         """
-        Initialize the communication interfaces for the module. 
+        Initialize the communication interfaces for the module.
         
-        TODO: catch errors
-        TODO: include ROSbridge communcation patterns.
+        TODO: Test ws4py publishers
         """
         
-        # Publisher storage
+        # Publisher storage dicts
         self.publishers = {}
+        self.pub_types = {}
         
         # Setup information for default subscriptions
         self.commands_topic = self.name + "/command"
@@ -93,19 +93,48 @@ class CSAModule(object):
         
         # Setup all required command publishers for other modules
         for key,value in pub_topics.items():
-            if value == Directive:
+            topic_type = value["type"]
+            destination = value["destination"]
+            
+            # Get topic name if allowed type
+            if topic_type == Directive:
                 topic = key + "/command"
-                entry = {key: rospy.Publisher(topic, Directive, queue_size=1)}
-            elif value == Response:
+            elif topic_type == Response:
                 topic = key + "/response"
-                entry = {key: rospy.Publisher(topic, Response, queue_size=1)}
-                                              
+            else:
+                rospy.logerr("Topic type '{}' not recognized".format(topic_type))
+                exit()
+                
+            # Create publishers using rospy ("local") or websockets
+            if destination == "local":
+                pub = rospy.Publisher(topic, topic_type, queue_size=1)
+                pub_type = "rospy"
+            else:
+                pub = rC.RosMsg(destination, "pub", topic, topic_type, None) #TODO <-- add packing function
+                pub_type = "ws4py"
+            
             # Add to storage dictionary
-            self.publishers.update(entry)
+            self.publishers.update({key: pub})
+            self.pub_types({key: pub_type})
         
         # Signal completion
         rospy.loginfo("Communication interfaces setup")
         
+    def publish_message(self, pub_key, msg):
+        """
+        Publish a message using the correct message passing protocol for
+        the desired publisher object.
+        """
+        
+        # Get publisher type from given key
+        pub_type = self.pub_types[pub_key]
+        
+        # Publish message over the right protocol
+        if pub_type == "rospy":
+            self.publishers[pub_key].publish(msg)
+        elif pub_type == "ws4py":
+            self.publishers[pub_key].send(msg)
+    
     def command_callback(self, msg):
         """
         Callback function for directive/command messages to this module.
@@ -143,7 +172,7 @@ class CSAModule(object):
         TODO: Rework this section
         """
         
-        # Check if we have a new directive/command
+        # Check if we have new directive/command
         arb_output = self.arbitration.run(self.command, None)
         arb_directive = arb_output[0]
         arb_response = arb_output[1]
@@ -151,9 +180,9 @@ class CSAModule(object):
         # Response to comanding module (if necessary)
         if arb_response is not None:
             destination = arb_response.destination
-            self.publishers[destination].publish(arb_response)
+            self.publish_message(destination, arb_response)
         
-        # Check for a new response
+        # Check for new response
         # TODO: Run activity manager
         
         # Run Control
@@ -165,7 +194,7 @@ class CSAModule(object):
         # Issue command(s)
         if ctrl_directive is not None:
             destination = ctrl_directive.destination
-            self.publishers[destination].publish(ctrl_directive)
+            self.publish_message(destination, ctrl_directive)
             rospy.loginfo("Issuing directive %s to '%s'", ctrl_directive.id,
                 destination)
         
@@ -174,7 +203,7 @@ class CSAModule(object):
             arb_output = self.arbitration.run(None, ctrl_response)
             arb_response = arb_output[1]
             destination = arb_response.destination
-            self.publishers[destination].publish(arb_response)
+            self.publish_message(destination, arb_response)
             
         # Purge command and response callbacks for next loop
         self.command = None
@@ -196,6 +225,6 @@ class CSAModule(object):
         Things to do when shutdown occurs.
         """
         
-        # Log shutdown of the module
+        # Log shutdown of module
         rospy.sleep(1)
         rospy.loginfo("Shutting down '%s' node", self.name)
