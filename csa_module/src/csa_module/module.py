@@ -24,11 +24,10 @@ from csa_msgs.msg import Directive, Response
 
 class CSAModule(object):
     """
-    A generic CSA type module object. This is not meant to be run
-    independently, but instead, be used as an inherited class.
+    A generic CSA type module object.
     """
     
-    def __init__(self, name, rate, arb_algorithm, tact_algorithm, default_directive):
+    def __init__(self, name, arb_algorithm, tact_algorithm):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -36,6 +35,7 @@ class CSAModule(object):
         # Initialize rospy node
         rospy.init_node(name)
         rospy.loginfo("'%s' node initialized", name)
+        self.name = name
         
         # Setup cleanup function
         rospy.on_shutdown(self.cleanup)
@@ -44,11 +44,14 @@ class CSAModule(object):
         self.lock = threading.Lock()
         
         # Get module parameters
-        self.name = name
-        self.rate = rospy.Rate(rate)
+        self.rate = rospy.Rate(rospy.get_param("~rate", 30))
+        max_directives = rospy.get_param("~max_dirs", 2)
+        allowed_list = rospy.get_param("~allowed_list", [])
+        default_name = rospy.get_param("~default", "")
         
         # Setup the components
-        self.arbitration = ArbitrationComponent(self.name, arb_algorithm, default_directive)
+        self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
+                                                default_name, allowed_list)
         self.control = ControlComponent(self.name, tact_algorithm)
         #TODO: Activity Manager
         
@@ -97,10 +100,12 @@ class CSAModule(object):
             destination = value["destination"]
             
             # Get topic name if allowed type
-            if topic_type == Directive:
+            if topic_type == "Directive":
                 topic = key + "/command"
-            elif topic_type == Response:
+            elif topic_type == "Response":
                 topic = key + "/response"
+            else topic_type == "Other":
+                topic = "TODO"
             else:
                 rospy.logerr("Topic type '{}' not recognized".format(topic_type))
                 exit()
@@ -120,14 +125,15 @@ class CSAModule(object):
         # Signal completion
         rospy.loginfo("Communication interfaces setup")
         
-    def publish_message(self, pub_key, msg):
+    def publish_message(self, msg):
         """
         Publish a message using the correct message passing protocol for
         the desired publisher object.
         """
         
-        # Get publisher type from given key
-        pub_type = self.pub_types[pub_key]
+        # Get publisher info from the message
+        destination = msg.destination
+        pub_type = self.pub_types[destination]
         
         # Publish message over the right protocol
         if pub_type == "rospy":
@@ -179,8 +185,7 @@ class CSAModule(object):
         
         # Response to comanding module (if necessary)
         if arb_response is not None:
-            destination = arb_response.destination
-            self.publish_message(destination, arb_response)
+            self.publish_message(arb_response)
         
         # Check for new response
         # TODO: Run activity manager
@@ -193,8 +198,7 @@ class CSAModule(object):
         
         # Issue command(s)
         if ctrl_directive is not None:
-            destination = ctrl_directive.destination
-            self.publish_message(destination, ctrl_directive)
+            self.publish_message(ctrl_directive)
             rospy.loginfo("Issuing directive %s to '%s'", ctrl_directive.id,
                 destination)
         
@@ -202,8 +206,7 @@ class CSAModule(object):
         if ctrl_response is not None:
             arb_output = self.arbitration.run(None, ctrl_response)
             arb_response = arb_output[1]
-            destination = arb_response.destination
-            self.publish_message(destination, arb_response)
+            self.publish_message(arb_response)
             
         # Purge command and response callbacks for next loop
         self.command = None
@@ -211,7 +214,7 @@ class CSAModule(object):
         
     def run(self):
         """
-        Keep looping through the module while rospy is running
+        Keep looping through the module while rospy is running.
         """
         
         # Main loop
