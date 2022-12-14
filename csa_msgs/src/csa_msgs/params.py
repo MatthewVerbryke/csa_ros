@@ -34,26 +34,26 @@ def create_param_submsg(entry_conds, end_conds, rules, criteria, deadline):
     
     return msg
     
-def dict_to_key_value_list(dict_in):
+def rosmsg_to_key_value_list(msg_in):
     """
-    Convert a Python dictionary to a ROS 'KeyValue' message. 
+    Convert a ROS message into a ROS 'KeyValue' message, in which value 
+    is the actual message, and key is the message type. Allows a kludgy 
+    way to pass arbitrary messages using rosmsgs.
     
-    WARN: Needs to be a flat dictionary. 
     NOTE: Contents (AKA the 'values') will be serialized into a string
           regardless of what type they are at the start. They will need
           to be converted back into there original type at destination
-          of the message.
-          
-    TODO: Catch nested dictionaries and warn user
+          of the message using the 'key' as its type w/ ast.literal_eval
+          or similar.
     """
     
     key_value_list = []
     
     # Append each KeyValue making with properly formatting
-    for key,value in dict_in.items():
+    for key,value in msg_in.items():
         entry = KeyValue()
         entry.key = str(key)
         entry.value = str(value)
         key_value_list.append(entry)
         
-    return key_value_list
+    return key_value_list    

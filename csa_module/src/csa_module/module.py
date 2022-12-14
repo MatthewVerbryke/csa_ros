@@ -48,11 +48,18 @@ class CSAModule(object):
         max_directives = rospy.get_param("~max_dirs", 2)
         allowed_list = rospy.get_param("~allowed_list", [])
         default_name = rospy.get_param("~default", "")
+        allowed_order = rospy.get_param("~order", [])
+        latency = rospy.get_param("~latency", 0.01)
+        tolerance = rospy.get_param("~tolerance", 0.1)
+        state_topic = rospy.get_param("~state_topic", "")
+        pub_topics = rospy.get_param("~pub_topics", {})
         
         # Setup the components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
-                                                default_name, allowed_list)
-        self.control = ControlComponent(self.name, tact_algorithm)
+                                                default_name, allowed_list,
+                                                allowed_order, max_directives)
+        self.control = ControlComponent(self.name, tact_algorithm, latency,
+                                        tolerance)
         #TODO: Activity Manager
         
         # Create empty subscribers callback holding variables
@@ -62,7 +69,10 @@ class CSAModule(object):
         
         # Signal completion
         rospy.loginfo("Module components initialized")
-        
+    
+        # Initialize communication objects
+        self.initialize_communciations(state_topic, pub_topics)
+    
     def initialize_communications(self, state_topic, pub_topics):
         """
         Initialize the communication interfaces for the module.
@@ -104,7 +114,7 @@ class CSAModule(object):
                 topic = key + "/command"
             elif topic_type == "Response":
                 topic = key + "/response"
-            else topic_type == "Other":
+            elif topic_type == "Other":
                 topic = "TODO"
             else:
                 rospy.logerr("Topic type '{}' not recognized".format(topic_type))

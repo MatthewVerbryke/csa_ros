@@ -4,7 +4,7 @@
   Functions for direct packing/unpacking of 'csa_msgs' types into JSON
   format messages for use with ROSbridge.
   
-  Copyright 2020 University of Cincinnati
+  Copyright 2020-2022 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/rse_dam
   Additional copyright may be held by others, as reflected in the commit
@@ -12,82 +12,81 @@
 """
 
 
+import os
 import sys
 
-# Set path to catkin_ws source directory
-file_dir = sys.path[0]
-sys.path.append(file_dir + "/../../..")
-from rse_dam.communication import packing
 
-
-def pack_directive(msg):
+def pack_directive(directive):
     """
     Package a 'csa_msgs/Directive' message
     """
     
     # Prepare message info
-    action = msg.action
-    target = msg.target
-    rules = msg.rules
-    parameters = msg.parameters
+    header = pack_header(directive.header)
+    id_num = directive.id
+    name = directive.name
+    desc = directive.description
+    source = directive.source
+    dest = directive.destination
+    r_time = pack_duration(directive.response_time)
+    priority = directive.priority
+    params = pack_params(directive.params)
     
-    # Package complex sub-messages
-    header = packing.pack_header(msg.header)
-    start = packing.pack_time(msg.start_time)
-    pose_targets = pack_timed_pose_array(msg.target_poses)
-    trajectory = packing.pack_jointtrajectory(msg.joint_trajectory)
-    end = packing.pack_time(msg.end_time)
+    # Package entire message into dict
+    directive_msg = {"header": header,
+                     "id": id_name,
+                     "name": name,
+                     "description": desc,
+                     "source": source,
+                     "destination": dest,
+                     "response_time": r_time,
+                     "priority": priority,
+                     "params": params}
     
-    # Package entire message
-    directive = {"header": header,
-                 "action": action,
-                 "start_time": start,
-                 "target": target,
-                 "target_poses": pose_targets,
-                 "joint_trajectory": trajectory,
-                 "rules": rules,
-                 "parameters": parameters,
-                 "end_time": end_time}
-                  
-    return directive
+    return directive_msg
     
-def pack_response(msg):
+def pack_response(response):
     """
     Package a 'csa_ros/Response' message.
     """
     
     # Prepare message info
-    msg_recieved = msg.msg_recieved
-    status = msg.status
-    response = msg.status
-    
-    # Package complex sub-messages
-    header = packing.pack_header(msg.header)
-    poses = pack_timed_pose_array(msg.response_poses)
-    trajectory = packing.pack_jointtrajectory(msg.response_joint_trajectory)
+    header = pack_header(response.header)
+    id_num = response.id
+    source = response.source
+    dest = response.destination
+    status = response.status
+    reject_msg = response.reject_msg
+    params = pack_params(response.params)
     
     # Package entire message
-    response = {"header": header,
-                "msg_recieved": msg_recieved,
-                "status": status,
-                "response": response,
-                "response_poses": poses,
-                "response_joint_trajectory": trajectory}
-                
-    return response
+    response_msg = {"header": header,
+                    "id": id_num,
+                    "source": source,
+                    "destination": dest,
+                    "status": status,
+                    "reject_msg": reject_msg,
+                    "params": params}
     
-def pack_timed_pose_array(array):
+    return response_msg
+    
+def pack_params(params):
     """
-    Package a 'csa_msgs/TimedPoseArray' message.
+    Package a 'csa_ros/Parameters' message.
     """
     
-    # Package sub-messages
-    header = packing.pack_header(msg.header)
-    poses = packing.pack_pose_list(msg.poses)
-    times = packing.pack_time_array(msg.time_from_start)
+    # Prepare message info
+    entry_conds = pack_key_value(params.entry_conds)
+    end_conds = pack_key_value(params.end_conds)
+    rules = pack_key_value(params.rules)
+    criteria = pack_key_value(params.criteria)
+    deadline = pack_time(params.time)
     
-    timed_pose_array = {"header": header,
-                        "poses": poses,
-                        "time_from_start": times}
-                        
-    return timed_pose_array
+    # Package entire message
+    param_msg = {"entry_conds": entry_conds,
+                 "end_conds": end_conds,
+                 "rules": rules,
+                 "criteria": criteria,
+                 "deadline", deadline}
+    
+    return param_msg
