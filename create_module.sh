@@ -38,21 +38,23 @@ touch README.md && echo "Created file $MODULE_NAME/README.md"
 # Create and fill out launch directory
 mkdir launch/ && echo "Created folder $MODULE_NAME/launch"
 cd launch/
-touch $MODULE_NAME.launch && echo "Created file $MODULE_NAME/launch/$MODULE_NAME.launch"
+cp $SRC_PATH/csa_ros/csa_module/template/csa_launch_temp.txt $MODULE_NAME.launch && echo "Created file $MODULE_NAME/launch/$MODULE_NAME.launch"
+#touch $MODULE_NAME.launch && echo "Created file $MODULE_NAME/launch/$MODULE_NAME.launch"
 cd ..
 
-#  Create and fill out launch directory
+#  Create and fill out config directory
 mkdir config/ && echo "Created folder $MODULE_NAME/config"
 cd config/
-touch config.yaml && echo "Created file $MODULE_NAME/config/config.yaml"
+cp $SRC_PATH/csa_ros/csa_module/template/csa_config_temp.txt config.yaml && echo "Created file $MODULE_NAME/config/config.yaml"
+#touch config.yaml && echo "Created file $MODULE_NAME/config/config.yaml"
 cd ..
 
 # Create and fill out the source directory
-cd src/
-mkdir $MODULE_NAME/ && echo "Created folder $MODULE_NAME/src/$MODULE_NAME"
+cd src
+mkdir $MODULE_NAME && echo "Created folder $MODULE_NAME/src/$MODULE_NAME"
 cd $MODULE_NAME/
 touch __init__.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/__init__.py"
-touch module.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/module.py"
+cp $SRC_PATH/csa_ros/csa_module/template/csa_module_temp.txt $MODULE_NAME.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/$MODULE_NAME.py"
 touch tactics.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/tactics.py"
 mkdir tactics/ && echo "Created folder $MODULE_NAME/src/$MODULE_NAME/tactics/"
 cd tactics/

@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+"""
+
+"""
+
+
+import rospy
+
+from csa_module.module import CSAModule
+from csa_msgs.msg import Directive, Response
+
+
+if __name__ == "__main__":
+    
+    # Specify arbitration algorithm
+    arb_algorithm = None
+    
+    # Specify tactics algorithm
+    tact_algorithm = None
+    
+    # Initialize CSA module
+    module = CSAModule("", arb_algorithm, tact_algorithm, default_directive)
+    module.initialize_communications(state_topic, pub_topics)
+    
+    # Start the module main loop
+    module.run()

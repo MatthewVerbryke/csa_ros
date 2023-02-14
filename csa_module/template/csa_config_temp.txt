@@ -1,0 +1,11 @@
+name: 
+rate: 
+max_dirs: 
+allowed_list: []
+default: 
+order: []
+latency: 
+tolerance: 
+
+state_topic: {}
+pub_topics: {}
