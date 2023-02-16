@@ -38,11 +38,13 @@ class ArbitrationComponent(object):
         self.module_name = module_name
         self.merge_algorithm = merge_algorithm
         self.allowed_list = allowed_list
+        self.allowed_order = allowed_order
         self.max = max_directives
         
         # Setup default directive
         self.default_directive = Directive
         self.default_directive.name = default_name
+        self.default_directive.source = "self"
         self.default_directive.id = -1
         self.default_directive.response_time = 1
         self.default_directive.priority = 1
@@ -222,8 +224,9 @@ class ArbitrationComponent(object):
                                                       msg_type, msg)
             
             # Cleanup the completed/failed directive
-            self.directives.pop(response.id)
-            self.cur_directive = None
+            if len(self.directives) != 0:
+                self.directives.pop(response.id)
+                self.cur_directive = None
             
             # Arbitrate over remaining directives or issue default
             if len(self.directives) != 0:

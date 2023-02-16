@@ -35,12 +35,16 @@ class ControlComponent(object):
           arbitration component
     """
     
-    def __init__(self, module_name, tactics_algorithm):
+    def __init__(self, module_name, tactics_algorithm, latency, tolerance):
 
         # Initialize variables
         self.cur_id = -2
         self.directive = None
         self.tactic = None
+        
+        # Store input parameters
+        self.latency = latency
+        self.tolerance = tolerance
         
         # Flag variables
         self.executing = False
@@ -149,7 +153,7 @@ class ControlComponent(object):
         self.directive = None
         return False, None
         
-    def get_response_to_arbitration(self, directive, mode, msg):
+    def get_response_to_arbitration(self, mode, msg, directive):
         """
         Build a response message to the commanding module.
         """

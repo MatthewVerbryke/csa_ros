@@ -7,7 +7,7 @@
   <arg name="config_name" default="config"/>
   
   <!-- Launch test module node -->
-  <node name="$(node_name)" pkg="$MODULENAME$" type="$MODULENAME$.py" output="screen">
+  <node name="$(arg node_name)" pkg="$MODULENAME$" type="$MODULENAME$.py" output="screen">
       <rosparam file="$(find $MODULENAME$)/config/$(arg config_name).yaml"/>
   </node>
   

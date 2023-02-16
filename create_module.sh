@@ -39,14 +39,12 @@ touch README.md && echo "Created file $MODULE_NAME/README.md"
 mkdir launch/ && echo "Created folder $MODULE_NAME/launch"
 cd launch/
 cp $SRC_PATH/csa_ros/csa_module/template/csa_launch_temp.txt $MODULE_NAME.launch && echo "Created file $MODULE_NAME/launch/$MODULE_NAME.launch"
-#touch $MODULE_NAME.launch && echo "Created file $MODULE_NAME/launch/$MODULE_NAME.launch"
 cd ..
 
 #  Create and fill out config directory
 mkdir config/ && echo "Created folder $MODULE_NAME/config"
 cd config/
 cp $SRC_PATH/csa_ros/csa_module/template/csa_config_temp.txt config.yaml && echo "Created file $MODULE_NAME/config/config.yaml"
-#touch config.yaml && echo "Created file $MODULE_NAME/config/config.yaml"
 cd ..
 
 # Create and fill out the source directory

@@ -27,7 +27,8 @@ class CSAModule(object):
     A generic CSA type module object.
     """
     
-    def __init__(self, name, arb_algorithm, tact_algorithm):
+    def __init__(self, name, arb_algorithm, tact_algorithm, state_topic,
+                 pub_topics):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -40,7 +41,7 @@ class CSAModule(object):
         # Setup cleanup function
         rospy.on_shutdown(self.cleanup)
         
-        # Get a lock
+        # Get lock
         self.lock = threading.Lock()
         
         # Get module parameters
@@ -51,10 +52,13 @@ class CSAModule(object):
         allowed_order = rospy.get_param("~order", [])
         latency = rospy.get_param("~latency", 0.01)
         tolerance = rospy.get_param("~tolerance", 0.1)
-        state_topic = rospy.get_param("~state_topic", "")
-        pub_topics = rospy.get_param("~pub_topics", {})
+        #state_topic = rospy.get_param("~state_topic", "")
+        #pub_topics = rospy.get_param("~pub_topics", {})
         
-        # Setup the components
+        # Use params to setup arbitration algorithms
+        arb_algorithm.set_params([allowed_list, allowed_order])
+        
+        # Setup components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
                                                 default_name, allowed_list,
                                                 allowed_order, max_directives)
@@ -69,9 +73,9 @@ class CSAModule(object):
         
         # Signal completion
         rospy.loginfo("Module components initialized")
-    
+        
         # Initialize communication objects
-        self.initialize_communciations(state_topic, pub_topics)
+        self.initialize_communications(state_topic, pub_topics)
     
     def initialize_communications(self, state_topic, pub_topics):
         """
@@ -110,9 +114,9 @@ class CSAModule(object):
             destination = value["destination"]
             
             # Get topic name if allowed type
-            if topic_type == "Directive":
+            if topic_type == Directive:
                 topic = key + "/command"
-            elif topic_type == "Response":
+            elif topic_type == Response:
                 topic = key + "/response"
             elif topic_type == "Other":
                 topic = "TODO"
@@ -130,7 +134,7 @@ class CSAModule(object):
             
             # Add to storage dictionary
             self.publishers.update({key: pub})
-            self.pub_types({key: pub_type})
+            self.pub_types.update({key: pub_type})
         
         # Signal completion
         rospy.loginfo("Communication interfaces setup")
@@ -143,13 +147,19 @@ class CSAModule(object):
         
         # Get publisher info from the message
         destination = msg.destination
-        pub_type = self.pub_types[destination]
         
-        # Publish message over the right protocol
-        if pub_type == "rospy":
-            self.publishers[pub_key].publish(msg)
-        elif pub_type == "ws4py":
-            self.publishers[pub_key].send(msg)
+        
+        # If to be "sent" locally, do nothing
+        if destination == "self":
+            pass
+        
+        # Otherwise publish message over the right protocol
+        else:
+            pub_type = self.pub_types[destination]
+            if pub_type == "rospy":
+                self.publishers[pub_key].publish(msg)
+            elif pub_type == "ws4py":
+                self.publishers[pub_key].send(msg)
     
     def command_callback(self, msg):
         """

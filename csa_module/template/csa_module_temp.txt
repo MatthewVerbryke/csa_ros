@@ -13,15 +13,24 @@ from csa_msgs.msg import Directive, Response
 
 if __name__ == "__main__":
     
+    # Specify name for module
+    name = $NAME$
+    
+    # Specify state topic
+    state_topic = $STATETOPIC$
+    
+    # Specify other topics to publish over
+    pub_topics = $PUBTOPICS$
+    
     # Specify arbitration algorithm
-    arb_algorithm = None
+    arb_algorithm = $ARBALGORITHM$
     
     # Specify tactics algorithm
-    tact_algorithm = None
+    tact_algorithm = $TACTALGORITHM$
     
     # Initialize CSA module
-    module = CSAModule("", arb_algorithm, tact_algorithm, default_directive)
-    module.initialize_communications(state_topic, pub_topics)
+    module = CSAModule(name, arb_algorithm, tact_algorithm,
+                       state_topic, pub_topics)
     
     # Start the module main loop
     module.run()
