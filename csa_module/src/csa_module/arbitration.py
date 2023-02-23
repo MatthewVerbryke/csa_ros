@@ -31,14 +31,12 @@ class ArbitrationComponent(object):
         - Report status back to commanding module
     """
     
-    def __init__(self, module_name, merge_algorithm, default_name, allowed_list,
-                 allowed_order, max_directives):
+    def __init__(self, module_name, merge_algorithm, default_name,
+                 max_directives):
         
         # Store Parameters
         self.module_name = module_name
         self.merge_algorithm = merge_algorithm
-        self.allowed_list = allowed_list
-        self.allowed_order = allowed_order
         self.max = max_directives
         
         # Setup default directive
@@ -74,7 +72,7 @@ class ArbitrationComponent(object):
             msg = "Tried to append more than {} directives".format(self.max)
         
         # Check if the directive action is in the allowed list
-        elif directive.name not in self.allowed_list:
+        elif directive.name not in self.merge_algorithm.allowed_dirs:
             is_okay = False
             msg = "Directive action {} not allowed".format(self.directive.name)
         

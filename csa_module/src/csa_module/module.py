@@ -27,8 +27,8 @@ class CSAModule(object):
     A generic CSA type module object.
     """
     
-    def __init__(self, name, arb_algorithm, tact_algorithm, state_topic,
-                 pub_topics):
+    def __init__(self, name, default_name, arb_algorithm, tact_algorithm,
+                 state_topic, pub_topics):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -47,21 +47,12 @@ class CSAModule(object):
         # Get module parameters
         self.rate = rospy.Rate(rospy.get_param("~rate", 30))
         max_directives = rospy.get_param("~max_dirs", 2)
-        allowed_list = rospy.get_param("~allowed_list", [])
-        default_name = rospy.get_param("~default", "")
-        allowed_order = rospy.get_param("~order", [])
         latency = rospy.get_param("~latency", 0.01)
         tolerance = rospy.get_param("~tolerance", 0.1)
-        #state_topic = rospy.get_param("~state_topic", "")
-        #pub_topics = rospy.get_param("~pub_topics", {})
-        
-        # Use params to setup arbitration algorithms
-        arb_algorithm.set_params([allowed_list, allowed_order])
         
         # Setup components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
-                                                default_name, allowed_list,
-                                                allowed_order, max_directives)
+                                                default_name, max_directives)
         self.control = ControlComponent(self.name, tact_algorithm, latency,
                                         tolerance)
         #TODO: Activity Manager
@@ -147,7 +138,6 @@ class CSAModule(object):
         
         # Get publisher info from the message
         destination = msg.destination
-        
         
         # If to be "sent" locally, do nothing
         if destination == "self":

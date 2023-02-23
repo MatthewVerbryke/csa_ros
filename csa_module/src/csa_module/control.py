@@ -88,7 +88,7 @@ class ControlComponent(object):
         
         # Create control directive
         got_dir, ctrl_directive = self.tactic.run(state)
-        
+        print(ctrl_directive)
         # Handle successfully finding control directive
         if got_dir:
             arb_response = None
