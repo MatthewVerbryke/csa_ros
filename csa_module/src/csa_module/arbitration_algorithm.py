@@ -10,7 +10,7 @@
   history.
 """
 
-
+from csa_msgs.directive import Directive
 from csa_common.directed_graph import DirectedGraph
 
 
@@ -29,4 +29,7 @@ class ArbitrationAlgorithm(object):
         """
         Run the arbitration algorithm (needs to be filled end by user).
         """
-        pass
+        
+        arb_directive = Directive()
+        
+        return arb_directive
