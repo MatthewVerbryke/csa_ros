@@ -11,7 +11,7 @@
 """
 
 
-from csa_msgs.directive import Directive
+from tactic import Tactic
 
 
 class TacticsAlgorithm(object):
@@ -31,7 +31,7 @@ class TacticsAlgorithm(object):
         Run the tactics selection algorithm (needs to be filled end by user).
         """
         
-        tactic = [Directive()]
+        tactics = [Tactic()]
         status = True
         
-        return tactic, success
+        return tactics, success

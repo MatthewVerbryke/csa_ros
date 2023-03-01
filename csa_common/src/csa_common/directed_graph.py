@@ -30,8 +30,12 @@ class DirectedGraph(object):
         Return whether or not the selected nodes have a connecting edge.
         """
         
+        # Find indices for each value
+        i0 = self.nodes.index(start)
+        i1 = self.nodes.index(end)
+        
         # Get value out of adjacency matrix
-        value = self.a_matrix[start,end]
+        value = self.a_matrix[i0,i1]
         
         # Determine output
         if value == 1:

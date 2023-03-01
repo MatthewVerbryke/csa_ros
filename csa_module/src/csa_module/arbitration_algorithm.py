@@ -19,11 +19,11 @@ class ArbitrationAlgorithm(object):
     Base class object for arbitration algorithms.
     """
     
-    def __init__(self, allowed_dirs, allowed_list):
+    def __init__(self, allowed_dirs, adjacencies):
         
         # Store parameters
         self.allowed_dirs = allowed_dirs
-        self.dir_graph = DirectedGraph(allowed_dirs, allowed_list)
+        self.dir_graph = DirectedGraph(allowed_dirs, adjacencies)
     
     def run(self, cur_directive, directives):
         """
