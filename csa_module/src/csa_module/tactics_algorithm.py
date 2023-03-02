@@ -28,7 +28,8 @@ class TacticsAlgorithm(object):
     
     def run(self, directive, state):
         """
-        Run the tactics selection algorithm (needs to be filled end by user).
+        Run the tactics selection algorithm (needs to be filled end by
+        user).
         """
         
         tactics = [Tactic()]
