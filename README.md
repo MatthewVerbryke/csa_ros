@@ -24,7 +24,6 @@ TODO
 ## Future Work
 
 Next steps include:
-- Expand communication protocols that can be utilized, including rosbridge/websockets
 - Implementation of an Activity Managment component
 - Further improvements to module/component code
 - Create a usage guide

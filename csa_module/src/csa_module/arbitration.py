@@ -31,20 +31,25 @@ class ArbitrationComponent(object):
         - Report status back to commanding module
     """
     
-    def __init__(self, module_name, merge_algorithm, default_directive):
+    def __init__(self, module_name, merge_algorithm, default_name,
+                 max_directives):
         
-        # Get Parameters
+        # Store Parameters
         self.module_name = module_name
         self.merge_algorithm = merge_algorithm
+        self.max = max_directives
         
         # Setup default directive
-        self.default_directive = default_directive
+        self.default_directive = Directive
+        self.default_directive.name = default_name
+        self.default_directive.source = "self"
         self.default_directive.id = -1
+        self.default_directive.response_time = 1
+        self.default_directive.priority = 1
         self.cur_id = -1
         
         # Initialize other parameters
         self.cur_directive = None
-        self.max = 2
         self.standby = True
                 
         # Initialize storage variables
@@ -66,8 +71,12 @@ class ArbitrationComponent(object):
             is_okay = False
             msg = "Tried to append more than {} directives".format(self.max)
         
+        # Check if the directive action is in the allowed list
+        elif directive.name not in self.merge_algorithm.allowed_dirs:
+            is_okay = False
+            msg = "Directive action {} not allowed".format(self.directive.name)
+        
         # TODO: Add more basic checks here
-        #elif
         
         # Store the new directive
         else:
@@ -213,8 +222,9 @@ class ArbitrationComponent(object):
                                                       msg_type, msg)
             
             # Cleanup the completed/failed directive
-            self.directives.pop(response.id)
-            self.cur_directive = None
+            if len(self.directives) != 0:
+                self.directives.pop(response.id)
+                self.cur_directive = None
             
             # Arbitrate over remaining directives or issue default
             if len(self.directives) != 0:

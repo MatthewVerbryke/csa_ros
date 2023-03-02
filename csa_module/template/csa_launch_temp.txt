@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<launch>
+  
+  <!-- Arguments to be passed to the launch file -->
+  <arg name="node_name" default="$MODULENAME$_module"/>
+  <arg name="config_name" default="config"/>
+  
+  <!-- Launch test module node -->
+  <node name="$(arg node_name)" pkg="$MODULENAME$" type="$MODULENAME$.py" output="screen">
+      <rosparam file="$(find $MODULENAME$)/config/$(arg config_name).yaml"/>
+  </node>
+  
+</launch>
