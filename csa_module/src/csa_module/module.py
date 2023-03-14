@@ -35,7 +35,6 @@ class CSAModule(object):
         
         # Initialize rospy node
         rospy.init_node(name)
-        rospy.loginfo("'%s' node initialized", name)
         self.name = name
         
         # Setup cleanup function
@@ -49,6 +48,17 @@ class CSAModule(object):
         max_directives = rospy.get_param("~max_dirs", 2)
         latency = rospy.get_param("~latency", 0.01)
         tolerance = rospy.get_param("~tolerance", 0.1)
+        prefix = rospy.get_param("~prefix", False)
+        # state_topic = rospy.get_param("~state_topics")
+        # pub_topics = rospy.get_param("~pub_topics")
+        self.subsystem = rospy.get_param("~subsystem", "")
+        
+        # Add prefix if option selected
+        if prefix:
+            self.name = self.subsystem + "_" + self.name
+        
+        # Signal initialization
+        rospy.loginfo("'%s' node initialized", self.name)
         
         # Setup components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
@@ -85,8 +95,11 @@ class CSAModule(object):
         
         # Setup state information topic
         for key,value in state_topic.items():
-            self.state_topic = key
-            self.state_format = value
+            if value["prefix"]:
+                self.state_topic = self.subsystem + "_" + key
+            else:
+                self.state_topic = key
+            self.state_format = value["type"]
         
         # Initialize common subscriptions
         self.command_sub = rospy.Subscriber(self.commands_topic,
@@ -103,24 +116,32 @@ class CSAModule(object):
         for key,value in pub_topics.items():
             topic_type = value["type"]
             destination = value["destination"]
+            prefix_option = bool(value["prefix"])
+            
+            # Handle prefix for topic
+            if prefix_option:
+                prefix = self.subsystem + "_"
+            else:
+                prefix = ""
             
             # Get topic name if allowed type
             if topic_type == Directive:
-                topic = key + "/command"
+                topic = prefix + key + "/command"
             elif topic_type == Response:
-                topic = key + "/response"
+                topic = prefix + key + "/response"
             elif topic_type == "Other":
                 topic = "TODO"
             else:
                 rospy.logerr("Topic type '{}' not recognized".format(topic_type))
                 exit()
-                
+            
             # Create publishers using rospy ("local") or websockets
+            #TODO: add packing function
             if destination == "local":
                 pub = rospy.Publisher(topic, topic_type, queue_size=1)
                 pub_type = "rospy"
             else:
-                pub = rC.RosMsg(destination, "pub", topic, topic_type, None) #TODO <-- add packing function
+                pub = rC.RosMsg(destination, "pub", topic, topic_type, None)
                 pub_type = "ws4py"
             
             # Add to storage dictionary
