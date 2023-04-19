@@ -53,7 +53,7 @@ mkdir $MODULE_NAME && echo "Created folder $MODULE_NAME/src/$MODULE_NAME"
 cd $MODULE_NAME/
 touch __init__.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/__init__.py"
 cp $SRC_PATH/csa_ros/csa_module/template/csa_module_temp.txt $MODULE_NAME.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/$MODULE_NAME.py"
-touch tactics.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/tactics.py"
+touch tactics_selection.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/tactics_selection.py"
 mkdir tactics/ && echo "Created folder $MODULE_NAME/src/$MODULE_NAME/tactics/"
 cd tactics/
 touch __init__.py && echo "Created file $MODULE_NAME/src/$MODULE_NAME/tactics/__init__.py"

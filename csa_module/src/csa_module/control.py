@@ -35,7 +35,8 @@ class ControlComponent(object):
           arbitration component
     """
     
-    def __init__(self, module_name, tactics_algorithm, latency, tolerance):
+    def __init__(self, module_name, tactics_algorithm, latency, tolerance,
+                 continuous=False):
 
         # Initialize variables
         self.cur_id = -2
@@ -45,10 +46,10 @@ class ControlComponent(object):
         # Store input parameters
         self.latency = latency
         self.tolerance = tolerance
+        self.continuous = continuous
         
         # Flag variables
         self.executing = False
-        self.continuous = False
         
         # Initialize tactics component
         self.tactics_component = TacticsComponent(tactics_algorithm) #<-- TODO: fix this
@@ -186,14 +187,14 @@ class ControlComponent(object):
         """
         
         arb_response = None
-        ctrl_directive = None
+        ctrl_directives = None
         
         # Handle getting new directive while standing-by
         if not self.executing and directive is not None:
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
                 self.cur_id = directive.id
-                ctrl_directive, arb_response = self.create_control_directive(
+                ctrl_directives, arb_response = self.create_control_directive(
                     state)            
             else:
                 pass
@@ -203,7 +204,7 @@ class ControlComponent(object):
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
                 self.cur_id = directive.id
-                ctrl_directive, arb_response = self.create_control_directive(
+                ctrl_directives, arb_response = self.create_control_directive(
                     state)
             else:
                 self.executing = False       
@@ -222,7 +223,7 @@ class ControlComponent(object):
             
             # Try to replan if failure in current directive 
             else:
-                got_replan, ctrl_directive = self.attempt_replan()
+                got_replan, ctrl_directives = self.attempt_replan()
                 if got_replan:
                     arb_response = None
                 else:
@@ -232,4 +233,4 @@ class ControlComponent(object):
         else:
             pass
         
-        return ctrl_directive, arb_response
+        return ctrl_directives, arb_response

@@ -11,9 +11,6 @@
 """
 
 
-from tactic import Tactic
-
-
 class TacticsAlgorithm(object):
     """
     Base class object for a tactic selection algorithm.
@@ -32,7 +29,7 @@ class TacticsAlgorithm(object):
         user).
         """
         
-        tactics = [Tactic()]
+        tactics = [""]
         status = True
         
         return tactics, success

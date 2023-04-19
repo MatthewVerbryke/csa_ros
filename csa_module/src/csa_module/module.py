@@ -49,8 +49,6 @@ class CSAModule(object):
         latency = rospy.get_param("~latency", 0.01)
         tolerance = rospy.get_param("~tolerance", 0.1)
         prefix = rospy.get_param("~prefix", False)
-        # state_topic = rospy.get_param("~state_topics")
-        # pub_topics = rospy.get_param("~pub_topics")
         self.subsystem = rospy.get_param("~subsystem", "")
         
         # Add prefix if option selected
