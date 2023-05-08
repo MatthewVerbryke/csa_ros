@@ -40,7 +40,7 @@ class ArbitrationComponent(object):
         self.max = max_directives
         
         # Setup default directive
-        self.default_directive = Directive
+        self.default_directive = Directive()
         self.default_directive.name = default_name
         self.default_directive.source = "self"
         self.default_directive.id = -1
