@@ -83,13 +83,13 @@ class ArbitrationComponent(object):
             self.directives.update({directive.id: directive})
             is_okay = True
             msg = ""
-            rospy.loginfo("Accepted directive %s from %s", directive.id,
-                directive.source)
+            rospy.loginfo("Accepted directive {} from {}".format(directive.id,
+                directive.source))
         
         # Log failures with reasoning
         if is_okay == False:
-            rospy.loginfo("Rejected directive %s from %s, reason: #s", 
-                direcitve.id, directive.source, msg)
+            rospy.loginfo("Rejected directive {} from {}, reason: {}".format( 
+                directive.id, directive.source, msg))
         
         return is_okay, msg
         
@@ -159,10 +159,11 @@ class ArbitrationComponent(object):
         
         # Merge the directives to get an arbitrated directive
         rospy.loginfo("Merging directives...")
-        arb_directive = self.merge_algorithm.run(self.directives)
+        arb_directive = self.merge_algorithm.run(self.cur_directive, 
+                                                 self.directives)
         
         # Check whether to issue the directive or not
-        if arb_directive.id!= self.cur_id:
+        if arb_directive.id != self.cur_id:
             self.cur_id = arb_directive.id
             self.cur_directive = arb_directive
             rospy.loginfo("Arbitration result: switching to directive %s",
