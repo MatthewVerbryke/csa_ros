@@ -32,4 +32,4 @@ class TacticsAlgorithm(object):
         tactics = [""]
         status = True
         
-        return tactics, success
+        return success, tactics
