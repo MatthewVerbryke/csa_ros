@@ -17,6 +17,7 @@ import threading
 
 import rospy
 
+from csa_module.activity_manager import ActivityManagerComponent
 from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
 from csa_msgs.msg import Directive, Response
@@ -28,7 +29,7 @@ class CSAModule(object):
     """
     
     def __init__(self, name, default_name, arb_algorithm, tact_algorithm,
-                 state_topic, pub_topics):
+                 am_algorithm, state_topic, pub_topics):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -63,7 +64,8 @@ class CSAModule(object):
                                                 default_name, max_directives)
         self.control = ControlComponent(self.name, tact_algorithm, latency,
                                         tolerance)
-        #TODO: Activity Manager
+        self.activity_manager = ActivityManagerComponent(self.name,
+                                                         am_algorithm)
         
         # Create empty subscribers callback holding variables
         self.command = None
@@ -130,7 +132,8 @@ class CSAModule(object):
             elif topic_type == "Other":
                 topic = "TODO"
             else:
-                rospy.logerr("Topic type '{}' not recognized".format(topic_type))
+                rospy.logerr("Topic type '{}' not recognized".format(
+                             topic_type))
                 exit()
             
             # Create publishers using rospy ("local") or websockets
@@ -203,8 +206,6 @@ class CSAModule(object):
     def run_once(self):
         """
         Run the components of the module in the proper order once.
-        
-        TODO: Rework this section
         """
         
         # Check if we have new directive/command
@@ -216,20 +217,34 @@ class CSAModule(object):
         if arb_response is not None:
             self.publish_message(arb_response)
         
-        # Check for new response
-        # TODO: Run activity manager
+        # Check for new response(s)
+        am_output = self.activity_manager.run(None, self.response)
+        am_directives = am_output[0]
+        am_responses = am_output[1]
+        
+        # Respond to commanded modules (if necessary)
+        if am_directives is not None:
+            for directive in am_directives:
+                self.publish_message(directive)
+                rospy.loginfo("Issuing directive %s to '%s'", am_directive.id,
+                              am_directive.destination)
         
         # Run Control
-        ctrl_output = self.control.run(arb_directive, self.response, self.state)
-        ctrl_directive = ctrl_output[0]
+        ctrl_output = self.control.run(arb_directive, am_responses, self.state)
+        ctrl_directives = ctrl_output[0]
         ctrl_response = ctrl_output[1]
-        #TODO: Run activity manager
+        
+        # Run activity manager
+        am_output = self.activity_manager.run(ctrl_directives, None)
+        am_directives = am_output[0]
+        am_responses = am_output[1]
         
         # Issue command(s)
-        if ctrl_directive is not None:
-            self.publish_message(ctrl_directive)
-            rospy.loginfo("Issuing directive %s to '%s'", ctrl_directive.id,
-                destination)
+        if am_directive is not None:
+            for directive in am_directives:
+                self.publish_message(directives)
+                rospy.loginfo("Issuing directive %s to '%s'", am_directive.id,
+                              am_directive.destination)
         
         # Respond to commanding module if necessary
         if ctrl_response is not None:

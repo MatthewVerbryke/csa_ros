@@ -24,7 +24,6 @@ TODO
 ## Future Work
 
 Next steps include:
-- Implementation of an Activity Managment component
 - Further improvements to module/component code
 - Create a usage guide
 - Include an implemented example module
