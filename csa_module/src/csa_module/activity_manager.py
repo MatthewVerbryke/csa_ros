@@ -138,7 +138,7 @@ class ActivityManagerComponent(object):
         if not self.executing and directives is not None:
             self.store_new_directives(directives)
             am_outputs, ctrl_responses = self.run_am_algorithm()
-                        
+            
             # Set 'executing' tag if expecting response
             if self.expect_resp:
                 self.executing = True
@@ -146,7 +146,7 @@ class ActivityManagerComponent(object):
                 self.directives = {}
                 self.cur_directives = {}
                 self.seq = []
-                            
+        
         # Handle getting new directive while executing
         elif self.executing and directives is not None :
             self.directives = {}
@@ -167,7 +167,7 @@ class ActivityManagerComponent(object):
                 # Rerun AM if still directives to run
                 if ctrl_responses is None:
                     am_outputs, ctrl_responses = self.run_am_algorithm()
-                    
+                
                 # If no new directives stop executing
                 else:
                     self.executing = False

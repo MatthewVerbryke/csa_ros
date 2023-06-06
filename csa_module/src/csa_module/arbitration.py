@@ -31,8 +31,7 @@ class ArbitrationComponent(object):
         - Report status back to commanding module
     """
     
-    def __init__(self, module_name, merge_algorithm, default_name,
-                 max_directives):
+    def __init__(self, module_name, merge_algorithm, max_directives):
         
         # Store Parameters
         self.module_name = module_name
@@ -40,6 +39,7 @@ class ArbitrationComponent(object):
         self.max = max_directives
         
         # Setup default directive
+        default_name = merge_algorithm.allowed_list[0]
         self.default_directive = Directive()
         self.default_directive.name = default_name
         self.default_directive.source = "self"
