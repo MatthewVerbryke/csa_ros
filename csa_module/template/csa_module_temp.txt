@@ -7,6 +7,7 @@
 
 import rospy
 
+# PUT OTHER REQUIRED INPUTS HERE
 from csa_module.module import CSAModule
 from csa_msgs.msg import Directive, Response
 from tactic_selection import $TACTICALGORITHM$
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     pub_topics = $PUBTOPICS$
     
     # Specify model information
-    model = $MODULEINFO$    
+    model = $MODELINFO$    
     
     # Specify arbitration algorithm
     arb_algorithm = $ARBALGORITHM$
@@ -37,9 +38,12 @@ if __name__ == "__main__":
     # Specify tactics algorithm
     tact_algorithm = $TACTALGORITHM$
     
+    # Specify activity manager algorithm
+    am_algorithm = $AMALGORITHM$
+    
     # Initialize CSA module
     module = CSAModule($MODULENAME$, default, arb_algorithm, tact_algorithm,
-                       state_topic, pub_topics)
+                       am_algorithm, model, state_topic, pub_topics)
     
     # Start the module main loop
     module.run()

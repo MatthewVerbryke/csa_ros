@@ -29,7 +29,7 @@ class CSAModule(object):
     """
     
     def __init__(self, name, arb_algorithm, tact_algorithm, am_algorithm,
-                 state_topic, pub_topics):
+                 model, state_topic, pub_topics):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -46,7 +46,7 @@ class CSAModule(object):
         
         # Get module parameters
         self.subsystem = rospy.get_param("~subsystem", "")
-        self.model_config = rospy.get_param("~model_config", None)
+        model_params = rospy.get_param("~model_params", {})
         self.rate = rospy.Rate(rospy.get_param("~rate", 30))
         max_directives = rospy.get_param("~max_dirs", 2)
         latency = rospy.get_param("~latency", 0.01)
@@ -60,11 +60,14 @@ class CSAModule(object):
         # Signal initialization
         rospy.loginfo("'%s' node initialized", self.name)
         
+        # Setup system model
+        self.setup_model(self, model, model_params)
+        
         # Setup main components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
                                                 max_directives)
-        self.control = ControlComponent(self.name, tact_algorithm,latency, 
-                                        tolerance)
+        self.control = ControlComponent(self.name, tact_algorithm, latency, 
+                                        tolerance, self.model)
         self.activity_manager = ActivityManagerComponent(self.name,
                                                          am_algorithm)
         
@@ -78,7 +81,29 @@ class CSAModule(object):
         
         # Initialize communication objects
         self.initialize_communications(state_topic, pub_topics)
+    
+    def setup_model(self, model_obj, params):
+        """
+        Setup the model given to this node as an argument with parameters
+        given through the ROSParam server.
+        """
         
+        # Configure model using parameters
+        if params == {}:
+            rospy.logwarn("No model parameterization recieved")
+        else:
+            model_obj.configure_model(model_params)
+        
+            # Retrieve selected subsystem if needed
+            if self.subsystem != "":
+                model_obj.get_subsystem(self.subsystem)
+                
+        # Store the model
+        self.model = self.model_obj
+        
+        # Signal Completion
+        rospy.loginfo("System model configured")
+    
     def initialize_communications(self, state_topic, pub_topics):
         """
         Initialize the communication interfaces for the module.

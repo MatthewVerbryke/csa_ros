@@ -20,10 +20,11 @@ class TacticsAlgorithm(object):
         
         # Store list of tactics which can be called
         self.tactic_list = tactic_list
+        self.model = model
         
         # TODO: add checks for this ^?
     
-    def run(self, directive, state):
+    def run(self, directive, state, model):
         """
         Run the tactics selection algorithm (needs to be filled end by
         user).

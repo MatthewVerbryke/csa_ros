@@ -36,7 +36,7 @@ class ControlComponent(object):
     """
     
     def __init__(self, module_name, tactics_algorithm, latency, tolerance,
-                 continuous=False):
+                 model):
 
         # Initialize variables
         self.cur_id = -2
@@ -46,7 +46,7 @@ class ControlComponent(object):
         # Store input parameters
         self.latency = latency
         self.tolerance = tolerance
-        self.continuous = continuous
+        self.model = model
         
         # Flag variables
         self.executing = False
@@ -62,7 +62,7 @@ class ControlComponent(object):
         
         # Get tactic from the tactics component
         rospy.loginfo("Requesting tactic for direcitve %s...", directive.id)
-        success, tactic = self.tactics_component.run(directive, state)
+        success, tactic = self.tactics_component.run(directive, state, model)
         
         # If successful, store tactic and new directive
         if success:
