@@ -39,7 +39,7 @@ class ArbitrationComponent(object):
         self.max = max_directives
         
         # Setup default directive
-        default_name = merge_algorithm.allowed_list[0]
+        default_name = merge_algorithm.allowed_dirs[0]
         self.default_directive = Directive()
         self.default_directive.name = default_name
         self.default_directive.source = "self"

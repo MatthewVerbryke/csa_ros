@@ -62,7 +62,8 @@ class ControlComponent(object):
         
         # Get tactic from the tactics component
         rospy.loginfo("Requesting tactic for direcitve %s...", directive.id)
-        success, tactic = self.tactics_component.run(directive, state, model)
+        success, tactic = self.tactics_component.run(directive, state,
+                                                     self.model)
         
         # If successful, store tactic and new directive
         if success:

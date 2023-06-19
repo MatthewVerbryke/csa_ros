@@ -32,13 +32,13 @@ class TacticsComponent(object):
         # Variables
         self.tactics_algorithm = tactics_algorithm        
         
-    def run(self, directive, state):
+    def run(self, directive, state, model):
         """
         Run the component once, reading in messages from the other
         components and performing its function.
         """
         
         # Handle a new tactic request
-        success, tactic = self.tactics_algorithm.run(directive, state)
+        success, tactic = self.tactics_algorithm.run(directive, state, model)
         
         return success, tactic #<-- TODO: change to send multiple tactics

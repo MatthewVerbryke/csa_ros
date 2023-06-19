@@ -34,7 +34,7 @@ def create_param_submsg(entry_conds, end_conds, rules, criteria, deadline):
     
     return msg
     
-def rosmsg_to_key_value_list(msg_in):
+def dict_to_key_value_list(msg_in):
     """
     Convert a ROS message into a ROS 'KeyValue' message, in which value 
     is the actual message, and key is the message type. Allows a kludgy 

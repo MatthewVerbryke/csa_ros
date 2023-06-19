@@ -6,11 +6,15 @@
   <arg name="node_name" default="$MODULENAME$"/>
   <arg name="subsystem" default=""/>
   <arg name="config_name" default="config"/>
+  <arg name="robot" default=""/>
+  <arg name="robot_pkg" default="$(arg robot)_bringup"/>
   
   <!-- Launch test module node -->
   <node name="$(arg subsystem)_$(arg node_name)" pkg="$MODULENAME$" type="$MODULENAME$.py" output="screen">
       <rosparam file="$(find $MODULENAME$)/config/$(arg config_name).yaml"/>
+      <param name="robot" value="$(arg robot)"/>
       <param name="subsystem" value="$(arg subsystem)"/>
+      <rosparam file="$(eval find(robot_pkg) + '/config/model.yaml')"/>
   </node>
   
 </launch>

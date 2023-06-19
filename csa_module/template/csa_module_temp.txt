@@ -42,7 +42,7 @@ if __name__ == "__main__":
     am_algorithm = $AMALGORITHM$
     
     # Initialize CSA module
-    module = CSAModule($MODULENAME$, default, arb_algorithm, tact_algorithm,
+    module = CSAModule($MODULENAME$, arb_algorithm, tact_algorithm,
                        am_algorithm, model, state_topic, pub_topics)
     
     # Start the module main loop

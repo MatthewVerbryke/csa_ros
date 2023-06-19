@@ -20,7 +20,6 @@ class TacticsAlgorithm(object):
         
         # Store list of tactics which can be called
         self.tactic_list = tactic_list
-        self.model = model
         
         # TODO: add checks for this ^?
     

@@ -46,7 +46,7 @@ class CSAModule(object):
         
         # Get module parameters
         self.subsystem = rospy.get_param("~subsystem", "")
-        model_params = rospy.get_param("~model_params", {})
+        model_params = rospy.get_param("~model_config", {})
         self.rate = rospy.Rate(rospy.get_param("~rate", 30))
         max_directives = rospy.get_param("~max_dirs", 2)
         latency = rospy.get_param("~latency", 0.01)
@@ -61,7 +61,7 @@ class CSAModule(object):
         rospy.loginfo("'%s' node initialized", self.name)
         
         # Setup system model
-        self.setup_model(self, model, model_params)
+        self.setup_model(model, model_params)
         
         # Setup main components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
@@ -79,6 +79,9 @@ class CSAModule(object):
         self.response = None
         self.state = None
         
+        # Create initial flag variables
+        self.got_first_state = False
+        
         # Initialize communication objects
         self.initialize_communications(state_topic, pub_topics)
     
@@ -90,16 +93,16 @@ class CSAModule(object):
         
         # Configure model using parameters
         if params == {}:
-            rospy.logwarn("No model parameterization recieved")
+            rospy.logerr("No model parameterization recieved")
         else:
-            model_obj.configure_model(model_params)
+            model_obj.configure_model(params)
         
             # Retrieve selected subsystem if needed
             if self.subsystem != "":
                 model_obj.get_subsystem(self.subsystem)
                 
         # Store the model
-        self.model = self.model_obj
+        self.model = model_obj
         
         # Signal Completion
         rospy.loginfo("System model configured")
@@ -161,11 +164,11 @@ class CSAModule(object):
             
         # Setup topic name
         if topic_type == Directive:
-            topic = prefix + key + "/command"
+            topic = prefix + name + "/command"
         elif topic_type == Response:
-            topic = prefix + key + "/response"
+            topic = prefix + name + "/response"
         else:
-            topic = prefix + key
+            topic = prefix + name
             
         # Create publishers using rospy ("local") or websockets
         if destination == "local":
