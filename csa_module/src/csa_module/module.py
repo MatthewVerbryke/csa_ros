@@ -204,7 +204,7 @@ class CSAModule(object):
         
         # Handle interface if needed
         if self.publishers[pub_key]["interface"] is not None:
-            msg_to_pub = self.publishers[pub_key]["interface"](msg)
+            msg_to_pub = self.publishers[pub_key]["interface"].convert(msg)
         else:
             msg_to_pub = msg
         
@@ -219,8 +219,8 @@ class CSAModule(object):
         Publish multple messages at the same time.
         """
         
-        for msg in msgs:
-            self.publish_message(msg)
+        for key,value in msgs.items():
+            self.publish_message(value)
     
     def command_callback(self, msg):
         """
@@ -287,7 +287,7 @@ class CSAModule(object):
         
         # Issue command(s)
         if am_directives is not None:
-            self.publish_multiple_message(am_directives)
+            self.publish_multiple_messages(am_directives)
         
         # Respond to commanding module if necessary
         if ctrl_response is not None:

@@ -231,8 +231,12 @@ class ControlComponent(object):
                 else:
                     pass
         
-        # Do nothing
+        # Continue or do nothing
         else:
-            pass
+            if self.tactic.continuous:
+                ctrl_directives, arb_response = self.create_control_directive(
+                    state)
+            else:
+                pass
         
         return ctrl_directives, arb_response

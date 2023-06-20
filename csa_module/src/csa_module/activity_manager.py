@@ -63,9 +63,9 @@ class ActivityManagerComponent(object):
         
         # Move selected directives into currently executing list
         if success:
-            for direct in directives_out:
-                self.directives.pop(direct.id, None)
-                self.cur_directives.update({direct.id: direct})
+            for key,value in directives_out.items():
+                self.directives.pop(key, None)
+                self.cur_directives.update({key: value})
         
         # If failed to find directive get failure response
         else:
