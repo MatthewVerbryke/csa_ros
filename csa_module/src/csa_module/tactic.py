@@ -22,6 +22,7 @@ class Tactic(object):
     def __init__(self, params, model):
         
         self.params = params
+        self.continuous = False
         self.model = model
         
     def run(self, state):
