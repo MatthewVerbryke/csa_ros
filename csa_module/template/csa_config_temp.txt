@@ -1,7 +1,5 @@
-rate: 
-max_dirs: 
-allowed_list: []
-default: 
-order: []
-latency: 
-tolerance: 
+rate: 30
+max_dirs: 2
+latency: 0.5
+tolerance: 0.01
+prefix: True

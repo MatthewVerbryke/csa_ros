@@ -3,7 +3,7 @@
 """
   CSA module control component source code.
   
-  Copyright 2021-2022 University of Cincinnati
+  Copyright 2021-2023 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -35,7 +35,8 @@ class ControlComponent(object):
           arbitration component
     """
     
-    def __init__(self, module_name, tactics_algorithm, latency, tolerance):
+    def __init__(self, module_name, tactics_algorithm, latency, tolerance,
+                 model):
 
         # Initialize variables
         self.cur_id = -2
@@ -45,10 +46,10 @@ class ControlComponent(object):
         # Store input parameters
         self.latency = latency
         self.tolerance = tolerance
+        self.model = model
         
         # Flag variables
         self.executing = False
-        self.continuous = False
         
         # Initialize tactics component
         self.tactics_component = TacticsComponent(tactics_algorithm) #<-- TODO: fix this
@@ -61,7 +62,8 @@ class ControlComponent(object):
         
         # Get tactic from the tactics component
         rospy.loginfo("Requesting tactic for direcitve %s...", directive.id)
-        success, tactic = self.tactics_component.run(directive, state)
+        success, tactic = self.tactics_component.run(directive, state,
+                                                     self.model)
         
         # If successful, store tactic and new directive
         if success:
@@ -73,7 +75,8 @@ class ControlComponent(object):
         # Handle failure to find tactic
         else:
             msg = "Failed to find tactic"
-            response = self.get_response_to_arbitration("failure", msg, directive)
+            response = self.get_response_to_arbitration(directive, msg,
+                                                        "failure")
             self.directive = None
             self.tactic = None
             rospy.loginfo("Failed to get tactic")
@@ -153,7 +156,7 @@ class ControlComponent(object):
         self.directive = None
         return False, None
         
-    def get_response_to_arbitration(self, mode, msg, directive):
+    def get_response_to_arbitration(self, directive, mode, msg):
         """
         Build a response message to the commanding module.
         """
@@ -186,14 +189,14 @@ class ControlComponent(object):
         """
         
         arb_response = None
-        ctrl_directive = None
+        ctrl_directives = None
         
         # Handle getting new directive while standing-by
         if not self.executing and directive is not None:
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
                 self.cur_id = directive.id
-                ctrl_directive, arb_response = self.create_control_directive(
+                ctrl_directives, arb_response = self.create_control_directive(
                     state)            
             else:
                 pass
@@ -203,7 +206,7 @@ class ControlComponent(object):
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
                 self.cur_id = directive.id
-                ctrl_directive, arb_response = self.create_control_directive(
+                ctrl_directives, arb_response = self.create_control_directive(
                     state)
             else:
                 self.executing = False       
@@ -222,14 +225,18 @@ class ControlComponent(object):
             
             # Try to replan if failure in current directive 
             else:
-                got_replan, ctrl_directive = self.attempt_replan()
+                got_replan, ctrl_directives = self.attempt_replan()
                 if got_replan:
                     arb_response = None
                 else:
                     pass
         
-        # Do nothing
+        # Continue or do nothing
         else:
-            pass
+            if self.tactic.continuous:
+                ctrl_directives, arb_response = self.create_control_directive(
+                    state)
+            else:
+                pass
         
-        return ctrl_directive, arb_response
+        return ctrl_directives, arb_response

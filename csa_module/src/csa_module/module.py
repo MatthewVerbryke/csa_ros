@@ -3,7 +3,7 @@
 """
   CSA module main module source code.
   
-  Copyright 2022 University of Cincinnati
+  Copyright 2022-2023 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -17,6 +17,7 @@ import threading
 
 import rospy
 
+from csa_module.activity_manager import ActivityManagerComponent
 from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
 from csa_msgs.msg import Directive, Response
@@ -24,18 +25,17 @@ from csa_msgs.msg import Directive, Response
 
 class CSAModule(object):
     """
-    A generic CSA type module object.
+    A generic CSA type control module object.
     """
     
-    def __init__(self, name, default_name, arb_algorithm, tact_algorithm,
-                 state_topic, pub_topics):
+    def __init__(self, name, arb_algorithm, tact_algorithm, am_algorithm,
+                 model, state_topic, pub_topics):
         
         # Get home directory
         self.home_dir = os.getcwd()
         
         # Initialize rospy node
         rospy.init_node(name)
-        rospy.loginfo("'%s' node initialized", name)
         self.name = name
         
         # Setup cleanup function
@@ -45,39 +45,75 @@ class CSAModule(object):
         self.lock = threading.Lock()
         
         # Get module parameters
+        self.subsystem = rospy.get_param("~subsystem", "")
+        model_params = rospy.get_param("~model_config", {})
         self.rate = rospy.Rate(rospy.get_param("~rate", 30))
         max_directives = rospy.get_param("~max_dirs", 2)
         latency = rospy.get_param("~latency", 0.01)
         tolerance = rospy.get_param("~tolerance", 0.1)
+        prefix = rospy.get_param("~prefix", False)
         
-        # Setup components
+        # Add prefix if option selected
+        if prefix:
+            self.name = self.subsystem + "_" + self.name
+        
+        # Signal initialization
+        rospy.loginfo("'%s' node initialized", self.name)
+        
+        # Setup system model
+        self.setup_model(model, model_params)
+        
+        # Setup main components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
-                                                default_name, max_directives)
-        self.control = ControlComponent(self.name, tact_algorithm, latency,
-                                        tolerance)
-        #TODO: Activity Manager
+                                                max_directives)
+        self.control = ControlComponent(self.name, tact_algorithm, latency, 
+                                        tolerance, self.model)
+        self.activity_manager = ActivityManagerComponent(self.name,
+                                                         am_algorithm)
+        
+        # Signal completion
+        rospy.loginfo("Module components initialized")
         
         # Create empty subscribers callback holding variables
         self.command = None
         self.response = None
         self.state = None
         
-        # Signal completion
-        rospy.loginfo("Module components initialized")
+        # Create initial flag variables
+        self.got_first_state = False
         
         # Initialize communication objects
         self.initialize_communications(state_topic, pub_topics)
     
+    def setup_model(self, model_obj, params):
+        """
+        Setup the model given to this node as an argument with parameters
+        given through the ROSParam server.
+        """
+        
+        # Configure model using parameters
+        if params == {}:
+            rospy.logerr("No model parameterization recieved")
+        else:
+            model_obj.configure_model(params)
+        
+            # Retrieve selected subsystem if needed
+            if self.subsystem != "":
+                model_obj.get_subsystem(self.subsystem)
+                
+        # Store the model
+        self.model = model_obj
+        
+        # Signal Completion
+        rospy.loginfo("System model configured")
+    
     def initialize_communications(self, state_topic, pub_topics):
         """
         Initialize the communication interfaces for the module.
-        
-        TODO: Test ws4py publishers
         """
         
         # Publisher storage dicts
         self.publishers = {}
-        self.pub_types = {}
         
         # Setup information for default subscriptions
         self.commands_topic = self.name + "/command"
@@ -85,8 +121,11 @@ class CSAModule(object):
         
         # Setup state information topic
         for key,value in state_topic.items():
-            self.state_topic = key
-            self.state_format = value
+            if value["prefix"]:
+                self.state_topic = self.subsystem + "_" + key
+            else:
+                self.state_topic = key
+            self.state_format = value["type"]
         
         # Initialize common subscriptions
         self.command_sub = rospy.Subscriber(self.commands_topic,
@@ -101,55 +140,87 @@ class CSAModule(object):
         
         # Setup all required command publishers for other modules
         for key,value in pub_topics.items():
-            topic_type = value["type"]
-            destination = value["destination"]
-            
-            # Get topic name if allowed type
-            if topic_type == Directive:
-                topic = key + "/command"
-            elif topic_type == Response:
-                topic = key + "/response"
-            elif topic_type == "Other":
-                topic = "TODO"
-            else:
-                rospy.logerr("Topic type '{}' not recognized".format(topic_type))
-                exit()
-                
-            # Create publishers using rospy ("local") or websockets
-            if destination == "local":
-                pub = rospy.Publisher(topic, topic_type, queue_size=1)
-                pub_type = "rospy"
-            else:
-                pub = rC.RosMsg(destination, "pub", topic, topic_type, None) #TODO <-- add packing function
-                pub_type = "ws4py"
-            
-            # Add to storage dictionary
-            self.publishers.update({key: pub})
-            self.pub_types.update({key: pub_type})
+            pub_dict = self.setup_publisher(key, value)
+            self.publishers.update({key: pub_dict})
         
         # Signal completion
         rospy.loginfo("Communication interfaces setup")
+    
+    def setup_publisher(self, name, config):
+        """
+        Setup individual publisher.
+        """
         
+        # Get basic parameters out of publisher
+        topic_type = config["type"]
+        destination = config["destination"]
+        prefix_option = bool(config["prefix"])
+        
+        # Handle prefix for topic
+        if prefix_option:
+            prefix = self.subsystem + "_"
+        else:
+            prefix = ""
+            
+        # Setup topic name
+        if topic_type == Directive:
+            topic = prefix + name + "/command"
+        elif topic_type == Response:
+            topic = prefix + name + "/response"
+        else:
+            topic = prefix + name
+            
+        # Create publishers using rospy ("local") or websockets
+        if destination == "local":
+            pub = rospy.Publisher(topic, topic_type, queue_size=1)
+            pub_type = "rospy"
+        else:
+            pack_function = value["pack_function"]
+            pub = rC.RosMsg(destination, "pub", topic, topic_type, 
+                            pack_function)
+            pub_type = "ws4py"
+            
+        # Handle the interface option
+        if "interface" in config:
+            interface = config["interface"]
+        else:
+            interface = None
+            
+        # Package into dictionary
+        pub_dict = {"type": pub_type,
+                    "publisher": pub,
+                    "interface": interface}
+        
+        return pub_dict
+    
     def publish_message(self, msg):
         """
         Publish a message using the correct message passing protocol for
         the desired publisher object.
         """
         
-        # Get publisher info from the message
-        destination = msg.destination
+        # Get appropriate publisher option
+        pub_key = msg.destination
         
-        # If to be "sent" locally, do nothing
-        if destination == "self":
-            pass
-        
-        # Otherwise publish message over the right protocol
+        # Handle interface if needed
+        if self.publishers[pub_key]["interface"] is not None:
+            msg_to_pub = self.publishers[pub_key]["interface"].convert(msg)
         else:
-            pub_type = self.pub_types[destination]
-            if pub_type == "rospy":
-                self.publishers[pub_key].publish(msg)
-            elif pub_type == "ws4py":
-                self.publishers[pub_key].send(msg)
+            msg_to_pub = msg
+        
+        # Publish message over correct protocol
+        if self.publishers[pub_key]["type"] == "rospy":
+            self.publishers[pub_key]["publisher"].publish(msg_to_pub)
+        elif self.publishers[pub_key]["type"] == "ws4py":
+            self.publishers[pub_key]["publisher"].send(msg_to_pub)
+            
+    def publish_multiple_messages(self, msgs):
+        """
+        Publish multple messages at the same time.
+        """
+        
+        for key,value in msgs.items():
+            self.publish_message(value)
     
     def command_callback(self, msg):
         """
@@ -160,7 +231,7 @@ class CSAModule(object):
         self.lock.acquire()
         self.command = msg
         self.lock.release()
-        
+    
     def response_callback(self, msg):
         """
         Callback function for response messages to this module.
@@ -170,7 +241,7 @@ class CSAModule(object):
         self.lock.acquire()
         self.response = msg
         self.lock.release()
-        
+    
     def state_callback(self, msg):
         """
         Callback function for state messages from the state estimator.
@@ -184,8 +255,6 @@ class CSAModule(object):
     def run_once(self):
         """
         Run the components of the module in the proper order once.
-        
-        TODO: Rework this section
         """
         
         # Check if we have new directive/command
@@ -197,20 +266,28 @@ class CSAModule(object):
         if arb_response is not None:
             self.publish_message(arb_response)
         
-        # Check for new response
-        # TODO: Run activity manager
+        # Check for new response(s)
+        am_output = self.activity_manager.run(None, self.response)
+        am_directives = am_output[0]
+        am_responses = am_output[1]
+        
+        # Respond to commanded modules (if necessary)
+        if am_directives is not None:
+            self.publish_multiple_message(am_directives)
         
         # Run Control
-        ctrl_output = self.control.run(arb_directive, self.response, self.state)
-        ctrl_directive = ctrl_output[0]
+        ctrl_output = self.control.run(arb_directive, am_responses, self.state)
+        ctrl_directives = ctrl_output[0]
         ctrl_response = ctrl_output[1]
-        #TODO: Run activity manager
+        
+        # Run activity manager
+        am_output = self.activity_manager.run(ctrl_directives, None)
+        am_directives = am_output[0]
+        am_responses = am_output[1]
         
         # Issue command(s)
-        if ctrl_directive is not None:
-            self.publish_message(ctrl_directive)
-            rospy.loginfo("Issuing directive %s to '%s'", ctrl_directive.id,
-                destination)
+        if am_directives is not None:
+            self.publish_multiple_messages(am_directives)
         
         # Respond to commanding module if necessary
         if ctrl_response is not None:

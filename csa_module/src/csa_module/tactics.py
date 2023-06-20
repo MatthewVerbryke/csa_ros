@@ -3,7 +3,7 @@
 """
   CSA module tactics component source code.
   
-  Copyright 2021-2022 University of Cincinnati
+  Copyright 2021-2023 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -32,13 +32,13 @@ class TacticsComponent(object):
         # Variables
         self.tactics_algorithm = tactics_algorithm        
         
-    def run(self, directive, state):
+    def run(self, directive, state, model):
         """
         Run the component once, reading in messages from the other
         components and performing its function.
         """
         
         # Handle a new tactic request
-        tactic, success = self.tactics_algorithm.run(directive, state)
+        success, tactic = self.tactics_algorithm.run(directive, state, model)
         
         return success, tactic #<-- TODO: change to send multiple tactics

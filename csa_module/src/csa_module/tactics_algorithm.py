@@ -11,9 +11,6 @@
 """
 
 
-from tactic import Tactic
-
-
 class TacticsAlgorithm(object):
     """
     Base class object for a tactic selection algorithm.
@@ -26,13 +23,13 @@ class TacticsAlgorithm(object):
         
         # TODO: add checks for this ^?
     
-    def run(self, directive, state):
+    def run(self, directive, state, model):
         """
         Run the tactics selection algorithm (needs to be filled end by
         user).
         """
         
-        tactics = [Tactic()]
+        tactics = [""]
         status = True
         
-        return tactics, success
+        return success, tactics
