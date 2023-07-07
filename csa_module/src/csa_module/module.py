@@ -46,6 +46,7 @@ class CSAModule(object):
         
         # Get module parameters
         self.subsystem = rospy.get_param("~subsystem", "")
+        self.robot = rospy.get_param("~robot", "")
         model_params = rospy.get_param("~model_config", {})
         self.rate = rospy.Rate(rospy.get_param("~rate", 30))
         max_directives = rospy.get_param("~max_dirs", 2)
@@ -154,11 +155,14 @@ class CSAModule(object):
         # Get basic parameters out of publisher
         topic_type = config["type"]
         destination = config["destination"]
-        prefix_option = bool(config["prefix"])
+        prefix_option = bool(config["use_prefix"])
         
-        # Handle prefix for topic
+        # Handle prefixes for topic
         if prefix_option:
-            prefix = self.subsystem + "_"
+            if config["use_robot_ns"]:
+                prefix = robot + "/" + self.subsystem + "/"
+            else:
+                prefix = self.subsystem + "/"
         else:
             prefix = ""
             
@@ -169,7 +173,7 @@ class CSAModule(object):
             topic = prefix + name + "/response"
         else:
             topic = prefix + name
-            
+
         # Create publishers using rospy ("local") or websockets
         if destination == "local":
             pub = rospy.Publisher(topic, topic_type, queue_size=1)
