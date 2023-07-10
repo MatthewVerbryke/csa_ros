@@ -122,7 +122,7 @@ class CSAModule(object):
         
         # Setup state information topic
         for key,value in state_topic.items():
-            if value["prefix"]:
+            if value["use_prefix"]:
                 self.state_topic = self.subsystem + "_" + key
             else:
                 self.state_topic = key
@@ -160,7 +160,7 @@ class CSAModule(object):
         # Handle prefixes for topic
         if prefix_option:
             if config["use_robot_ns"]:
-                prefix = robot + "/" + self.subsystem + "/"
+                prefix = self.robot + "/" + self.subsystem + "/"
             else:
                 prefix = self.subsystem + "/"
         else:
