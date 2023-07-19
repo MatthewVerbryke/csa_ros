@@ -56,7 +56,7 @@ class CSAModule(object):
         
         # Add prefix if option selected
         if prefix:
-            self.name = self.subsystem + "_" + self.name
+            self.name = self.subsystem + "/" + self.name
         
         # Signal initialization
         rospy.loginfo("'%s' node initialized", self.name)
@@ -97,13 +97,13 @@ class CSAModule(object):
             rospy.logerr("No model parameterization recieved")
         else:
             model_obj.configure_model(params)
-        
+            
             # Retrieve selected subsystem if needed
             if self.subsystem != "":
-                model_obj.get_subsystem(self.subsystem)
-                
-        # Store the model
-        self.model = model_obj
+                sub_model = model_obj.get_subsystem(self.subsystem)
+                self.model = sub_model
+            else:
+                self.model = model_obj
         
         # Signal Completion
         rospy.loginfo("System model configured")
@@ -123,7 +123,7 @@ class CSAModule(object):
         # Setup state information topic
         for key,value in state_topic.items():
             if value["use_prefix"]:
-                self.state_topic = self.subsystem + "_" + key
+                self.state_topic = self.subsystem + "/" + key
             else:
                 self.state_topic = key
             self.state_format = value["type"]

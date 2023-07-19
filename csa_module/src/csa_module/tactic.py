@@ -19,8 +19,9 @@ class Tactic(object):
     Base class object for a CSA tactic.
     """
     
-    def __init__(self, params, model):
+    def __init__(self, module_name, params, model):
         
+        self.module_name = module_name
         self.params = params
         self.continuous = False
         self.model = model

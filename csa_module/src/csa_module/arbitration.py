@@ -73,8 +73,9 @@ class ArbitrationComponent(object):
         
         # Check if the directive action is in the allowed list
         elif directive.name not in self.merge_algorithm.allowed_dirs:
+            print(self.merge_algorithm.allowed_dirs)
             is_okay = False
-            msg = "Directive action {} not allowed".format(self.directive.name)
+            msg = "Directive action '{}' not allowed".format(directive.name)
         
         # TODO: Add more basic checks here
         

@@ -44,6 +44,7 @@ class ControlComponent(object):
         self.tactic = None
         
         # Store input parameters
+        self.module_name = module_name
         self.latency = latency
         self.tolerance = tolerance
         self.model = model
@@ -52,7 +53,9 @@ class ControlComponent(object):
         self.executing = False
         
         # Initialize tactics component
-        self.tactics_component = TacticsComponent(tactics_algorithm) #<-- TODO: fix this
+        # TODO: fix this
+        self.tactics_component = TacticsComponent(module_name, 
+                                                  tactics_algorithm)
     
     def request_tactic(self, directive, state):
         """
