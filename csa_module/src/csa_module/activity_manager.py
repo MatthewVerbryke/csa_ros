@@ -47,7 +47,7 @@ class ActivityManagerComponent(object):
             id_num = direct.id
             self.seq.append(id_num)
             self.directives.update({id_num: direct})
-        
+
     def run_am_algorithm(self):
         """
         Run the main activity manager algorithm, and determine if it was
@@ -75,7 +75,7 @@ class ActivityManagerComponent(object):
             
         return directives_out, responses
         
-    def process_new_responses(self, responses):
+    def process_new_responses(self, response):
         """
         Handle response messages from controlled modules.
         """
@@ -84,17 +84,15 @@ class ActivityManagerComponent(object):
         msg = ""
         
         # If successful, delete completed directive from executing list
-        for response in responses:
-            if response.status == "success":
-                self.cur_directives.pop(response.id, None)
-                self.seq.pop(self.seq.index(response.id))
-                self.responses.append(response)
+        if response.status == "success":
+            self.cur_directives.pop(response.id, None)
+            self.seq.pop(self.seq.index(response.id))
+            self.responses.append(response)
             
-            # Otherwise get info out of response message
-            elif response.status == "failure":
-                success = False
-                self.responses = [response]
-                break
+        # Otherwise get info out of response message
+        elif response.status == "failure":
+            success = False
+            self.responses = [response]
                 
         return success
         
@@ -125,7 +123,7 @@ class ActivityManagerComponent(object):
                                                 
         return response_msgs
     
-    def run(self, directives, responses):
+    def run(self, directives, response):
         """
         Run the component, based on the case most appropriate for the 
         current state of the component.
@@ -135,20 +133,15 @@ class ActivityManagerComponent(object):
         ctrl_responses = None
         
         # Handle getting new directive while standing-by
-        if not self.executing and directives is not None:
+        if not self.executing and directives != [None]:
             self.store_new_directives(directives)
             am_outputs, ctrl_responses = self.run_am_algorithm()
             
-            # Set 'executing' tag if expecting response
-            if self.expect_resp:
-                self.executing = True
-            else:
-                self.directives = {}
-                self.cur_directives = {}
-                self.seq = []
+            # Set 'executing' tag
+            self.executing = True
         
         # Handle getting new directive while executing
-        elif self.executing and directives is not None :
+        elif self.executing and directives != [None]:
             self.directives = {}
             self.cur_directives = {}
             self.responses = []
@@ -157,8 +150,8 @@ class ActivityManagerComponent(object):
             am_outputs, ctrl_responses = self.run_am_algorithm()
         
         # Handle new response on current control directive
-        elif responses is not None:
-            success = self.process_new_responses(responses)
+        elif response is not None:
+            success = self.process_new_responses(response)
             
             # If success prepare response
             if success:

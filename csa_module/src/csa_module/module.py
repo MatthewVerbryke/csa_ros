@@ -21,6 +21,7 @@ from csa_module.activity_manager import ActivityManagerComponent
 from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
 from csa_msgs.msg import Directive, Response
+from csa_msgs.response import create_response_msg
 
 
 class CSAModule(object):
@@ -53,6 +54,7 @@ class CSAModule(object):
         latency = rospy.get_param("~latency", 0.01)
         tolerance = rospy.get_param("~tolerance", 0.1)
         prefix = rospy.get_param("~prefix", False)
+        self.expect_resp = rospy.get_param("~expect_resp", True)
         
         # Add prefix if option selected
         if prefix:
@@ -141,8 +143,7 @@ class CSAModule(object):
         
         # Setup all required command publishers for other modules
         for key,value in pub_topics.items():
-            pub_dict = self.setup_publisher(key, value)
-            self.publishers.update({key: pub_dict})
+            self.setup_publisher(key, value)
         
         # Signal completion
         rospy.loginfo("Communication interfaces setup")
@@ -173,7 +174,10 @@ class CSAModule(object):
             topic = prefix + name + "/response"
         else:
             topic = prefix + name
-
+        
+        #
+        new_key = self.subsystem + "/" + name
+        
         # Create publishers using rospy ("local") or websockets
         if destination == "local":
             pub = rospy.Publisher(topic, topic_type, queue_size=1)
@@ -195,7 +199,8 @@ class CSAModule(object):
                     "publisher": pub,
                     "interface": interface}
         
-        return pub_dict
+        # Add sub-entry into main publishers dict
+        self.publishers.update({new_key: pub_dict})
     
     def publish_message(self, msg):
         """
@@ -270,8 +275,12 @@ class CSAModule(object):
         if arb_response is not None:
             self.publish_message(arb_response)
         
+        # Check for completion when not expecting external responses
+        if not self.expect_resp and self.control.tactic is not None:
+            self.check_for_completion()
+        
         # Check for new response(s)
-        am_output = self.activity_manager.run(None, self.response)
+        am_output = self.activity_manager.run([None], self.response)
         am_directives = am_output[0]
         am_responses = am_output[1]
         
@@ -298,7 +307,7 @@ class CSAModule(object):
             arb_output = self.arbitration.run(None, ctrl_response)
             arb_response = arb_output[1]
             self.publish_message(arb_response)
-            
+        
         # Purge command and response callbacks for next loop
         self.command = None
         self.response = None
@@ -314,6 +323,29 @@ class CSAModule(object):
             self.run_once()
             self.rate.sleep()
         
+    def check_for_completion(self):
+        """
+        Handling function for tactics when module is not recieving
+        responses to its outputs (typically because its using an 
+        interface). Creates a resposne message which elicits the correct
+        response from the module.
+        """
+        
+        # Get relevant information from control component
+        completion = self.control.tactic.completion
+        fail_msg = self.control.tactic.fail_msg
+        dir_id = self.control.cur_id
+        
+        # Create appropriate response message for situation
+        if completion == "in progress":
+            pass
+        elif completion == "complete":
+            self.response = create_response_msg(dir_id, "", self.name,
+                                                "success", fail_msg, None, "")
+        elif completion == "failed":
+            self.response = create_response_msg(dir_id, "", self.name,
+                                                "failure", fail_msg, None, "")
+    
     def cleanup(self):
         """
         Things to do when shutdown occurs.

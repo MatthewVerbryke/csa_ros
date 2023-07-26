@@ -25,6 +25,8 @@ class Tactic(object):
         self.params = params
         self.continuous = False
         self.model = model
+        self.completion = "in progress"
+        self.fail_msg = ""
         
     def run(self, state):
         """

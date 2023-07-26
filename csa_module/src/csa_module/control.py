@@ -164,7 +164,7 @@ class ControlComponent(object):
         Build a response message to the commanding module.
         """
         
-        frame = None #<-- TODO: Change this?
+        frame = "" #<-- TODO: Change this?
         
         # Determine whether to use arg directive or stored directive
         if directive is None:
@@ -192,7 +192,7 @@ class ControlComponent(object):
         """
         
         arb_response = None
-        ctrl_directives = None
+        ctrl_directives = [None]
         
         # Handle getting new directive while standing-by
         if not self.executing and directive is not None:
