@@ -34,8 +34,9 @@ class ActivityManagerComponent(object):
         self.cur_directives = {}
         self.directives = {}
         self.responses = []
-        self.seq = []
         self.executing = False
+        self.cur_id = -1
+        self.id_count = 1
     
     def store_new_directives(self, directives):
         """
@@ -43,10 +44,16 @@ class ActivityManagerComponent(object):
         id number.
         """
         
+        # Get current internal directive number
+        self.cur_id = directives[0].id
+        
+        # Store directive with new ids
         for direct in directives:
-            id_num = direct.id
-            self.seq.append(id_num)
-            self.directives.update({id_num: direct})
+            direct.id = self.id_count
+            self.directives.update({self.id_count: direct})
+            
+            # Increment id counter
+            self.id_count += 1
 
     def run_am_algorithm(self):
         """
@@ -56,7 +63,7 @@ class ActivityManagerComponent(object):
         list.
         """
         
-        responses = None
+        response = None
         
         # Run activity manager algorithm
         directives_out, success, msg = self.am_algorithm.run(self.directives)
@@ -70,29 +77,26 @@ class ActivityManagerComponent(object):
         # If failed to find directive get failure response
         else:
             directives_out = None
-            response = create_response_msg(0, "", "", "failure", msg, None, "")
-            responses = [responses]
+            response = create_response_msg(self.cur_id, "", "", "failure",
+                                           msg, None, "")
             
-        return directives_out, responses
+        return directives_out, response
         
     def process_new_responses(self, response):
         """
         Handle response messages from controlled modules.
         """
         
-        success = True
-        msg = ""
-        
         # If successful, delete completed directive from executing list
         if response.status == "success":
+            success = True
             self.cur_directives.pop(response.id, None)
-            self.seq.pop(self.seq.index(response.id))
-            self.responses.append(response)
+            self.response = None
             
         # Otherwise get info out of response message
         elif response.status == "failure":
             success = False
-            self.responses = [response]
+            self.response = response
                 
         return success
         
@@ -103,25 +107,31 @@ class ActivityManagerComponent(object):
         
         # If sequence is complete send responses
         if mode == "success":
-            if len(self.seq) == 0:
-                response_msgs = self.responses
-                self.responses = []
+            if len(self.directives) == 0:
+                response_msg = create_response_msg(self.cur_id, "", "", mode,
+                                                    "", None, "")
             
             # Otherwise continue
             else:
-                response_msgs = None
+                response_msg = None
             
         # Pass through failure message for direcive which failed
         else:
-            response_msgs = self.responses
-            
-            # Clear out currently held information
-            self.cur_directives = {}
-            self.directives = {}
-            self.responses = []
-            self.seq = []
+            response_msg = create_response_msg(self.cur_id, "", "", mode,
+                                               self.response.reject_msg, None,
+                                               "")
+            self.clear_directives()
                                                 
-        return response_msgs
+        return response_msg
+    
+    def clear_directives(self):
+        """
+        Clear all stored direcitve information.
+        """
+        
+        self.directives = {}
+        self.cur_directives = {}
+        self.response = None
     
     def run(self, directives, response):
         """
@@ -142,10 +152,7 @@ class ActivityManagerComponent(object):
         
         # Handle getting new directive while executing
         elif self.executing and directives != [None]:
-            self.directives = {}
-            self.cur_directives = {}
-            self.responses = []
-            self.seq = []
+            self.clear_directives()
             self.store_new_directives(directives)
             am_outputs, ctrl_responses = self.run_am_algorithm()
         

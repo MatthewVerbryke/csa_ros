@@ -10,6 +10,7 @@
   history.
 """
 
+
 from csa_msgs.directive import Directive
 from csa_common.directed_graph import DirectedGraph
 

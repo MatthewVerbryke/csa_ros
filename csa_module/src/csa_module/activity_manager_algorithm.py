@@ -29,7 +29,7 @@ class ActivityManagerAlgorithm(object):
         
         # Store parameters
         self.expect_resp = expect_resp
-        
+    
     def run(self, directives):
         
         directives = [Directive()]

@@ -21,13 +21,14 @@ class Tactic(object):
     
     def __init__(self, module_name, params, model):
         
+        # Store Parameters
         self.module_name = module_name
         self.params = params
         self.continuous = False
         self.model = model
         self.completion = "in progress"
         self.fail_msg = ""
-        
+    
     def run(self, state):
         """
         Run the tactic and get a list of directives out (needs to be 

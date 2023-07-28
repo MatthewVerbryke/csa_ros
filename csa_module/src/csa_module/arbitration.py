@@ -46,15 +46,19 @@ class ArbitrationComponent(object):
         self.default_directive.id = -1
         self.default_directive.response_time = 1
         self.default_directive.priority = 1
-        self.cur_id = -1
         
         # Initialize other parameters
         self.cur_directive = None
         self.standby = True
-                
+        
         # Initialize storage variables
         self.directives = {}
         self.hold_over = None
+        
+        # Initialize other variables
+        self.cur_id = -1
+        self.dir_key = -1
+        self.id_count = 1
        
     def process_new_directive(self, directive):
         """
@@ -62,7 +66,8 @@ class ArbitrationComponent(object):
         """
         
         # Ignore if we got the directive already
-        if directive.id in self.directives.keys():
+        dir_key = directive.source + "_" + str(directive.id)
+        if dir_key in self.directives.keys():
             is_okay = True
             msg = "ignore"
         
@@ -81,7 +86,7 @@ class ArbitrationComponent(object):
         
         # Store the new directive
         else:
-            self.directives.update({directive.id: directive})
+            self.directives.update({dir_key: directive})
             is_okay = True
             msg = ""
             rospy.loginfo("Accepted directive {} from {}".format(directive.id,
@@ -162,15 +167,22 @@ class ArbitrationComponent(object):
         rospy.loginfo("Merging directives...")
         arb_directive = self.merge_algorithm.run(self.cur_directive, 
                                                  self.directives)
+        arb_key = arb_directive.source + "_" + str(arb_directive.id)
         
-        # Check whether to issue the directive or not
-        if arb_directive.id != self.cur_id:
-            self.cur_id = arb_directive.id
+        # Switch directive if not same currently executing
+        if arb_key != self.dir_key:
+            self.dir_key = arb_key
             self.cur_directive = arb_directive
+            
+            # Update id with internal number
+            self.cur_id = self.id_count
+            self.id_count += 1
+            arb_directive.id = self.cur_id
             rospy.loginfo("Arbitration result: switching to directive %s",
                 self.cur_id)
+        
+        # Otherwise continue
         else:
-            switch = False
             arb_directive = None
             rospy.loginfo("Arbitration result: continue")
         
@@ -225,7 +237,7 @@ class ArbitrationComponent(object):
             
             # Cleanup the completed/failed directive
             if len(self.directives) != 0:
-                self.directives.pop(response.id)
+                self.directives.pop(self.dir_key)
                 self.cur_directive = None
             
             # Arbitrate over remaining directives or issue default

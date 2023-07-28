@@ -100,7 +100,7 @@ class ControlComponent(object):
             arb_response = None
             if not self.executing:
                 self.executing = True
-        
+            
         # Handle failure to create control directive
         # TODO: expand?
         else:

@@ -22,7 +22,9 @@ from csa_msgs.msg import Directive, Response
 class PassThroughActivityManager(ActivityManagerAlgorithm):
     """
     A very simple activity manager algorithm which simply passes through
-    directives to be published
+    directives to be published.
+    
+    NOTE: Only to be used when sending one directive per destination.
     """
     
     def __init__(self, expect_resp):

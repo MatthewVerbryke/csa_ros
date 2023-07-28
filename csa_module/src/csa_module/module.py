@@ -201,7 +201,7 @@ class CSAModule(object):
         
         # Add sub-entry into main publishers dict
         self.publishers.update({new_key: pub_dict})
-    
+        
     def publish_message(self, msg):
         """
         Publish a message using the correct message passing protocol for
