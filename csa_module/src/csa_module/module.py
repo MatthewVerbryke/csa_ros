@@ -63,6 +63,9 @@ class CSAModule(object):
         # Signal initialization
         rospy.loginfo("'%s' node initialized", self.name)
         
+        # Set 'expect_resp' parameter for AM algorithm
+        am_algorithm.expect_resp = self.expect_resp
+        
         # Setup system model
         self.setup_model(model, model_params)
         

@@ -27,8 +27,8 @@ class PassThroughActivityManager(ActivityManagerAlgorithm):
     NOTE: Only to be used when sending one directive per destination.
     """
     
-    def __init__(self, expect_resp):
-        super().__init__(expect_resp)
+    def __init__(self):
+        super().__init__()
         
     def run(self, directives):
         """

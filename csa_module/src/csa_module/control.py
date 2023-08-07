@@ -157,7 +157,7 @@ class ControlComponent(object):
         rospy.loginfo("Attempting to replan (currently TODO)...")
         self.executing = False
         self.directive = None
-        return False, None
+        return False, [None]
         
     def get_response_to_arbitration(self, directive, mode, msg):
         """
@@ -213,7 +213,7 @@ class ControlComponent(object):
                     state)
             else:
                 self.executing = False       
-                
+            
         # Handle new response on current control directive
         elif self.executing and response is not None:
             success, arb_response = self.process_new_response(response)
@@ -222,12 +222,13 @@ class ControlComponent(object):
             if success:
                 self.cur_id = -2
             
-            # Ignore repeated messages for same directory
+            # Ignore repeated messages for same directive
             elif success is None:
                 pass
             
             # Try to replan if failure in current directive 
             else:
+                
                 got_replan, ctrl_directives = self.attempt_replan()
                 if got_replan:
                     arb_response = None

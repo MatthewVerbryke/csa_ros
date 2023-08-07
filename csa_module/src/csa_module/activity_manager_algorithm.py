@@ -25,10 +25,8 @@ class ActivityManagerAlgorithm(object):
     Base class object for activitiy manager algorithms.
     """
     
-    def __init__(self, expect_resp):
-        
-        # Store parameters
-        self.expect_resp = expect_resp
+    def __init__(self):
+        pass
     
     def run(self, directives):
         

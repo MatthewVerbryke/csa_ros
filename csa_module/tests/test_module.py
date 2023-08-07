@@ -25,7 +25,6 @@ class ModuleTestCommander(object):
     Module test commander node object. Mimics the function of a CSA 
     module to test acutal CSA modules, by sending out a predifined 
     directive, and listening to the response(s). 
-    
     """
     
     def __init__(self, fake_name, pub_topic, param_inputs, dir_inputs):
@@ -120,7 +119,7 @@ class ModuleTestCommander(object):
             else:
                 if self.response is not None:
                     print("heard response!")
-                    print("result: '%s'", self.response.success)
+                    rospy.loginfo("Result: '%s'", self.response.status)
                     exit()
             self.rate.sleep()
         
