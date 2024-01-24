@@ -28,8 +28,16 @@ class ActivityManagerAlgorithm(object):
     def __init__(self):
         pass
     
+    def process_response(self, response):
+        
+        response = Response()
+        
+        return response
+    
     def run(self, directives):
         
         directives = [Directive()]
+        success = True
+        msg = ""
         
-        return directives
+        return directives, success, msg

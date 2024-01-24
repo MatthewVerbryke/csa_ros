@@ -8,6 +8,8 @@
   https://github.com/MatthewVerbryke/gazebo_terrain
   Additional copyright may be held by others, as reflected in the commit
   history.
+  
+  TODO: Test rework
 """
 
 
@@ -31,12 +33,11 @@ class ActivityManagerComponent(object):
         self.expect_resp = am_algorithm.expect_resp
         
         # Initialize variables
-        self.cur_directives = {}
         self.directives = {}
-        self.responses = []
+        self.cur_directives = {}
         self.executing = False
         self.cur_id = -1
-        self.id_count = 1
+        self.id_count = 0
     
     def store_new_directives(self, directives):
         """
@@ -74,7 +75,7 @@ class ActivityManagerComponent(object):
                 self.directives.pop(key, None)
                 self.cur_directives.update({key: value})
         
-        # If failed to find directive get failure response
+        # If failed to find directive, get failure response
         else:
             directives_out = None
             response = create_response_msg(self.cur_id, "", "", "failure",
@@ -87,43 +88,34 @@ class ActivityManagerComponent(object):
         Handle response messages from controlled modules.
         """
         
-        # If successful, delete completed directive from executing list
-        if response.status == "success":
-            success = True
+        # Process response through activity manager algorithm
+        mode, params = self.am_algorithm.process_response(response)        
+        
+        # If still waiting on other responses, continue without response
+        if mode == "contintue":
             self.cur_directives.pop(response.id, None)
-            self.response = None
+            response_msg = None
+        
+        # If successful, prepare response to control component
+        elif mode == "success":
+            self.cur_directives.pop(response.id, None)
+            response_msg = create_response_msg(self.cur_id, "", "", mode,
+                                               "", params, "")
+            
+            # Reset execution flag
+            self.executing = False
             
         # Otherwise get info out of response message
-        elif response.status == "failure":
-            success = False
-            self.response = response
-                
-        return success
-        
-    def get_response_to_control(self, mode):
-        """
-        Build a response message to the control component.
-        """
-        
-        # If sequence is complete send responses
-        if mode == "success":
-            if len(self.directives) == 0:
-                response_msg = create_response_msg(self.cur_id, "", "", mode,
-                                                    "", None, "")
-            
-            # Otherwise continue
-            else:
-                response_msg = None
-            
-        # Pass through failure message for direcive which failed
-        else:
+        elif mode == "failure":
             response_msg = create_response_msg(self.cur_id, "", "", mode,
-                                               self.response.reject_msg, None,
+                                               self.response.reject_msg, params,
                                                "")
+            
+            # Clear directives
             self.clear_directives()
-                                                
+                
         return response_msg
-    
+        
     def clear_directives(self):
         """
         Clear all stored direcitve information.
@@ -131,7 +123,6 @@ class ActivityManagerComponent(object):
         
         self.directives = {}
         self.cur_directives = {}
-        self.response = None
     
     def run(self, directives, response):
         """
@@ -158,24 +149,7 @@ class ActivityManagerComponent(object):
         
         # Handle new response on current control directive
         elif response is not None:
-            success = self.process_new_responses(response)
-            
-            # If success prepare response
-            if success:
-                ctrl_responses = self.get_response_to_control("success")
-                
-                # Rerun AM if still directives to run
-                if ctrl_responses is None:
-                    am_outputs, ctrl_responses = self.run_am_algorithm()
-                
-                # If no new directives stop executing
-                else:
-                    self.executing = False
-            
-            # Pass through failure response to control
-            else:
-                ctrl_responses = self.get_response_to_control("failure")
-                #TODO: ISSUE SAFE DIRECTIVE
+            ctrl_response = self.process_new_responses(response)
         
         # Otherwise do nothing 
         else:
