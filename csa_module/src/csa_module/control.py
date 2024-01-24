@@ -44,6 +44,7 @@ class ControlComponent(object):
         self.tactic = None
         
         # Store input parameters
+        self.module_name = module_name
         self.latency = latency
         self.tolerance = tolerance
         self.model = model
@@ -52,7 +53,9 @@ class ControlComponent(object):
         self.executing = False
         
         # Initialize tactics component
-        self.tactics_component = TacticsComponent(tactics_algorithm) #<-- TODO: fix this
+        # TODO: fix this
+        self.tactics_component = TacticsComponent(module_name, 
+                                                  tactics_algorithm)
     
     def request_tactic(self, directive, state):
         """
@@ -97,7 +100,7 @@ class ControlComponent(object):
             arb_response = None
             if not self.executing:
                 self.executing = True
-        
+            
         # Handle failure to create control directive
         # TODO: expand?
         else:
@@ -154,14 +157,14 @@ class ControlComponent(object):
         rospy.loginfo("Attempting to replan (currently TODO)...")
         self.executing = False
         self.directive = None
-        return False, None
+        return False, [None]
         
     def get_response_to_arbitration(self, directive, mode, msg):
         """
         Build a response message to the commanding module.
         """
         
-        frame = None #<-- TODO: Change this?
+        frame = "" #<-- TODO: Change this?
         
         # Determine whether to use arg directive or stored directive
         if directive is None:
@@ -189,7 +192,7 @@ class ControlComponent(object):
         """
         
         arb_response = None
-        ctrl_directives = None
+        ctrl_directives = [None]
         
         # Handle getting new directive while standing-by
         if not self.executing and directive is not None:
@@ -210,7 +213,7 @@ class ControlComponent(object):
                     state)
             else:
                 self.executing = False       
-                
+            
         # Handle new response on current control directive
         elif self.executing and response is not None:
             success, arb_response = self.process_new_response(response)
@@ -219,12 +222,13 @@ class ControlComponent(object):
             if success:
                 self.cur_id = -2
             
-            # Ignore repeated messages for same directory
+            # Ignore repeated messages for same directive
             elif success is None:
                 pass
             
             # Try to replan if failure in current directive 
             else:
+                
                 got_replan, ctrl_directives = self.attempt_replan()
                 if got_replan:
                     arb_response = None

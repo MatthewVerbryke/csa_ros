@@ -3,13 +3,20 @@
 """
   Functions for working with a CSA "Params" type sub-message.
   
-  Copyright 2022 University of Cincinnati
+  NOTE: These functions can be used as a kludge to pass parameters of 
+        arbitrary ROS message-types using the CSA Directive/Response 
+        format. See TODO on how to utilize them within CSA format modules.
+  TODO: Improve upon this method or replace with a better way of doing
+        this?
+  
+  Copyright 2022-2023 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
   history.
 """
 
+import ast
 
 import rospy
 from diagnostic_msgs.msg import KeyValue
@@ -17,7 +24,7 @@ from diagnostic_msgs.msg import KeyValue
 from csa_msgs.msg import Parameters
 
 
-def create_param_submsg(entry_conds, end_conds, rules, criteria, deadline):
+def create_param_submsg(entry_conds, end_conds, criteria, rules, deadline):
     """
     Build a "Parameters" sub-message from the input data.
     """
@@ -34,17 +41,32 @@ def create_param_submsg(entry_conds, end_conds, rules, criteria, deadline):
     
     return msg
     
+def convert_params_to_dict(param_in):
+    """
+    Convert a 'Parameters' message into a dict conposed of native Python
+    types (except 'deadline' which remains 'std_msgs/Duration'.
+    """
+    
+    # Convert elements of 'Parameters' into dicts
+    entry_conds = key_value_list_to_dict(param_in.entry_conds)
+    end_conds = key_value_list_to_dict(param_in.end_conds)
+    rules = key_value_list_to_dict(param_in.rules)
+    criteria = key_value_list_to_dict(param_in.criteria)
+    deadline = param_in.deadline
+    
+    # Package these elements into dict
+    param_dict = {"entry_conds": entry_conds,
+                  "end_conds": end_conds,
+                  "rules": rules,
+                  "criteria": criteria,
+                  "deadline": deadline}
+    
+    return param_dict   
+
 def dict_to_key_value_list(msg_in):
     """
-    Convert a ROS message into a ROS 'KeyValue' message, in which value 
-    is the actual message, and key is the message type. Allows a kludgy 
-    way to pass arbitrary messages using rosmsgs.
-    
-    NOTE: Contents (AKA the 'values') will be serialized into a string
-          regardless of what type they are at the start. They will need
-          to be converted back into there original type at destination
-          of the message using the 'key' as its type w/ ast.literal_eval
-          or similar.
+    Convert an arbitrary dict of ROS-message types into a list of ROS
+    'KeyValue' messages. 
     """
     
     key_value_list = []
@@ -56,4 +78,18 @@ def dict_to_key_value_list(msg_in):
         entry.value = str(value)
         key_value_list.append(entry)
         
-    return key_value_list    
+    return key_value_list
+    
+def key_value_list_to_dict(kv_list):
+    """
+    Convert a ROS 'KeyValue' list into a dict of native Python types.
+    """
+    
+    dict_out = {}
+    
+    # Evaluate each key-value pair and store in output dictionary
+    for entry in kv_list:
+        interp_value = ast.literal_eval(entry.value)
+        dict_out.update({entry.key: interp_value})
+        
+    return dict_out

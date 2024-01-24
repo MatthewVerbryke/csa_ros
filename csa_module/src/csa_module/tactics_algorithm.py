@@ -22,6 +22,13 @@ class TacticsAlgorithm(object):
         self.tactic_list = tactic_list
         
         # TODO: add checks for this ^?
+        
+    def get_module_name(self, module_name):
+        """
+        Store the name of the module (used to give a module source to 
+        directives)
+        """
+        self.module_name = module_name
     
     def run(self, directive, state, model):
         """
