@@ -22,24 +22,30 @@ from csa_msgs.msg import Directive, Response
 class PassThroughActivityManager(ActivityManagerAlgorithm):
     """
     A very simple activity manager algorithm which simply passes through
-    directives to be published.
+    directives to be published with no response expected.
     
     NOTE: Only to be used when sending one directive per destination.
     """
     
     def __init__(self):
-        super().__init__()
         
-    def run(self, directives):
+        # Set response expectation parameter
+        expect_resp = False
+        super().__init__(expect_resp)
+        
+    def execute_activity(self, directive):
         """
         Simply return the directives
         
         TODO: check to make sure we aren't overloaded?
         """
         
+        directives_out = {}
+        
         # Copy direcitve list
-        directives_out = copy.deepcopy(directives)
+        id_num = directive.id
+        
+        # Package output
+        directives_out.update({id_num: directive})
         
         return directives_out, True, ""
-
-            

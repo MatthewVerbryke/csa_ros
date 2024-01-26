@@ -27,7 +27,8 @@ class ModuleTestCommander(object):
     directive, and listening to the response(s). 
     """
     
-    def __init__(self, fake_name, pub_topic, param_inputs, dir_inputs):
+    def __init__(self, fake_name, stop_option, pub_topic, param_inputs,
+                 dir_inputs):
         
         # Initialize rospy node
         rospy.init_node("module_commander")
@@ -43,6 +44,9 @@ class ModuleTestCommander(object):
         
         # Get rospy rate object
         self.rate = rospy.Rate(30.0)
+        
+        # Store stop option
+        self.stop_option = stop_option
         
         # Create and store directive object
         params = create_param_submsg(param_inputs[0], param_inputs[1],
@@ -117,10 +121,14 @@ class ModuleTestCommander(object):
             if not self.got_accept:
                 self.send_until_accepted()
             else:
-                if self.response is not None:
-                    print("heard response!")
-                    rospy.loginfo("Result: '%s'", self.response.status)
-                    exit()
+                if self.stop_option:
+                    rospy.loginfo("Stoping node due to stop option True")
+                    break
+                else:
+                    if self.response is not None:
+                        print("heard response!")
+                        rospy.loginfo("Result: '%s'", self.response.status)
+                        exit()
             self.rate.sleep()
         
     def cleanup(self):

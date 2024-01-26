@@ -35,7 +35,7 @@ class Tactic(object):
         filled end by user).
         """
         
-        directives = [Directive()]
+        directives = Directive()
         status = True
         
         return status, directives

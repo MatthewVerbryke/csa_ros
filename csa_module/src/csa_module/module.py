@@ -3,7 +3,7 @@
 """
   CSA module main module source code.
   
-  Copyright 2022-2023 University of Cincinnati
+  Copyright 2022-2024 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -178,7 +178,7 @@ class CSAModule(object):
         else:
             topic = prefix + name
         
-        #
+        # Create key for storage
         new_key = self.subsystem + "/" + name
         
         # Create publishers using rospy ("local") or websockets
@@ -283,7 +283,7 @@ class CSAModule(object):
             self.check_for_completion()
         
         # Check for new response(s)
-        am_output = self.activity_manager.run([None], self.response)
+        am_output = self.activity_manager.run(None, self.response)
         am_directives = am_output[0]
         am_responses = am_output[1]
         
@@ -293,13 +293,13 @@ class CSAModule(object):
         
         # Run Control
         ctrl_output = self.control.run(arb_directive, am_responses, self.state)
-        ctrl_directives = ctrl_output[0]
+        ctrl_directive = ctrl_output[0]
         ctrl_response = ctrl_output[1]
         
         # Run activity manager
-        am_output = self.activity_manager.run(ctrl_directives, None)
+        am_output = self.activity_manager.run(ctrl_directive, None)
         am_directives = am_output[0]
-        am_responses = am_output[1]
+        am_response = am_output[1]
         
         # Issue command(s)
         if am_directives is not None:
