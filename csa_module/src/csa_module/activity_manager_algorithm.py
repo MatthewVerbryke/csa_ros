@@ -3,13 +3,11 @@
 """
   Generic CSA activity manager algorithm base class source code.
   
-  Copyright 2021-2023 University of Cincinnati
+  Copyright 2021-2024 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/gazebo_terrain
   Additional copyright may be held by others, as reflected in the commit
   history.
-  
-  TODO: Test component
 """
 
 
@@ -25,19 +23,20 @@ class ActivityManagerAlgorithm(object):
     Base class object for activitiy manager algorithms.
     """
     
-    def __init__(self):
-        pass
+    def __init__(self, expect_resp):
+        self.expect_resp = expect_resp
     
     def process_response(self, response):
         
-        response = Response()
+        mode = "failure"
+        params = None
         
-        return response
+        return mode, params
     
-    def run(self, directives):
+    def execute_activity(self, directives):
         
-        directives = [Directive()]
-        success = True
+        directives = []
+        success = False
         msg = ""
         
         return directives, success, msg
