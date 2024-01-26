@@ -3,7 +3,7 @@
 """
   CSA module control component source code.
   
-  Copyright 2021-2023 University of Cincinnati
+  Copyright 2021-2024 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -157,7 +157,7 @@ class ControlComponent(object):
         rospy.loginfo("Attempting to replan (currently TODO)...")
         self.executing = False
         self.directive = None
-        return False, [None]
+        return False, None
         
     def get_response_to_arbitration(self, directive, mode, msg):
         """
@@ -192,14 +192,14 @@ class ControlComponent(object):
         """
         
         arb_response = None
-        ctrl_directives = [None]
+        ctrl_directive = None
         
         # Handle getting new directive while standing-by
         if not self.executing and directive is not None:
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
                 self.cur_id = directive.id
-                ctrl_directives, arb_response = self.create_control_directive(
+                ctrl_directive, arb_response = self.create_control_directive(
                     state)            
             else:
                 pass
@@ -209,7 +209,7 @@ class ControlComponent(object):
             got_tact, arb_response = self.request_tactic(directive, state)
             if got_tact:
                 self.cur_id = directive.id
-                ctrl_directives, arb_response = self.create_control_directive(
+                ctrl_directive, arb_response = self.create_control_directive(
                     state)
             else:
                 self.executing = False       
@@ -229,7 +229,7 @@ class ControlComponent(object):
             # Try to replan if failure in current directive 
             else:
                 
-                got_replan, ctrl_directives = self.attempt_replan()
+                got_replan, ctrl_directive = self.attempt_replan()
                 if got_replan:
                     arb_response = None
                 else:
@@ -238,9 +238,9 @@ class ControlComponent(object):
         # Continue or do nothing
         else:
             if self.tactic.continuous:
-                ctrl_directives, arb_response = self.create_control_directive(
+                ctrl_directive, arb_response = self.create_control_directive(
                     state)
             else:
                 pass
         
-        return ctrl_directives, arb_response
+        return ctrl_directive, arb_response
