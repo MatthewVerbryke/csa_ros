@@ -97,17 +97,24 @@ class ControlComponent(object):
         
         # Handle successfully finding control directive
         if got_dir:
-            arb_response = None
-            if not self.executing:
-                self.executing = True
+            if not self.tactic.resp_output:
+                arb_response = None
+                if not self.executing:
+                    self.executing = True
+                    
+            # Build response if not issuing directives for tactic
+            # TODO: Test
+            else:
+                params = ctrl_directive.params
+                arb_response = self.get_response_to_arbitration(None, "success",
+                                                                "", params)
             
         # Handle failure to create control directive
         # TODO: expand?
         else:
             msg = "Failed to get control directive"
             ctrl_directive = None
-            arb_response = self.get_response_to_arbitration(self.directive,
-                                                            "failure",
+            arb_response = self.get_response_to_arbitration(None, "failure",
                                                             msg)
             
             # Set system to standby
@@ -159,7 +166,7 @@ class ControlComponent(object):
         self.directive = None
         return False, None
         
-    def get_response_to_arbitration(self, directive, mode, msg):
+    def get_response_to_arbitration(self, directive, mode, msg, params=None):
         """
         Build a response message to the commanding module.
         """
@@ -175,13 +182,8 @@ class ControlComponent(object):
             source = directive.source
         
         # Create response message
-        response_msg = create_response_msg(id_num,
-                                           source,
-                                           "",
-                                           mode,
-                                           msg,
-                                           None,
-                                           frame)
+        response_msg = create_response_msg(id_num, source, "", mode, msg,
+                                           params, frame)
         
         return response_msg
         
@@ -228,7 +230,6 @@ class ControlComponent(object):
             
             # Try to replan if failure in current directive 
             else:
-                
                 got_replan, ctrl_directive = self.attempt_replan()
                 if got_replan:
                     arb_response = None

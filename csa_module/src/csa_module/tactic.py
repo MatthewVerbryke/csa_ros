@@ -21,13 +21,17 @@ class Tactic(object):
     
     def __init__(self, module_name, params, model):
         
-        # Store Parameters
+        # Initialize variables
+        self.completion = "in progress"
+        self.fail_msg = ""
+        
+        # Store parameters
         self.module_name = module_name
         self.params = params
         self.continuous = False
+        self.resp_output = True
         self.model = model
-        self.completion = "in progress"
-        self.fail_msg = ""
+        self.cur_id = int(params["rules"]["id"])
     
     def run(self, state):
         """
