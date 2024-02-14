@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 
 """
-
+  $DESCRIPTION$
+  
+  $LICENSEINFO$
 """
 
 
 import rospy
+# ADD OTHER ROS IMPORTS HERE
 
-# PUT OTHER REQUIRED INPUTS HERE
 from csa_module.module import CSAModule
 from csa_msgs.msg import Directive, Response
 from tactic_selection import $TACTICALGORITHM$
+# ADD OTHER USER MODULE INPUTS HERE
 
 
 if __name__ == "__main__":
     
-    # Specify allowed directives
+    # Specify allowed directives (default directive first)
     allowed_list = $DIRECTIVELIST$
-    default = $DEFAULT$
     adjacency = $AMATRIX$
     
     # Specify tactic list
