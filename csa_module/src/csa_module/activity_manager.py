@@ -67,7 +67,7 @@ class ActivityManagerComponent(object):
             directives_out = None
             response = create_response_msg(self.cur_id, "", "", "failure",
                                            msg, None, "")
-            
+        
         return directives_out, response
         
     def process_new_response(self, response):

@@ -13,11 +13,16 @@
 
 import rospy
 
+from csa_msgs.directive import create_directive_msg
+from csa_msgs.msg import Directive, Response
+from csa_msgs.param import create_param_submsg, convert_params_to_dict
+from csa_msgs.response import create_response_msg
+
 
 class Activity(object):
     """
     Base class object for activities. Intended for use with the
-    'DescreteActivityManager' class in the common applications package.
+    'DiscreteActivityManager' class in the common applications package.
     """
     
     def __init__(self):
@@ -25,10 +30,20 @@ class Activity(object):
         
     def get_outputs(self, params):
         """
-        
+        Given parameters for the activity, return a directive or set of
+        directives to perform the activity.
         """
         
-        acts_out = {}
+        acts_out = []
         
         return acts_out
-
+        
+    def check_response(self, response):
+        """
+        Check a response to an output directive to determine if the
+        activity is finished or should continue to execute.
+        """
+        
+        finished = False
+        
+        return finished

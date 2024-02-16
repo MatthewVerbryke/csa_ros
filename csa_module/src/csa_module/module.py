@@ -64,7 +64,7 @@ class CSAModule(object):
         rospy.loginfo("'%s' node initialized", self.name)
         
         # Set 'expect_resp' parameter for AM algorithm
-        am_algorithm.expect_resp = self.expect_resp
+        #am_algorithm.expect_resp = self.expect_resp
         
         # Setup system model
         self.setup_model(model, model_params)
@@ -178,9 +178,6 @@ class CSAModule(object):
         else:
             topic = prefix + name
         
-        # Create key for storage
-        new_key = self.subsystem + "/" + name
-        
         # Create publishers using rospy ("local") or websockets
         if destination == "local":
             pub = rospy.Publisher(topic, topic_type, queue_size=1)
@@ -198,12 +195,13 @@ class CSAModule(object):
             interface = None
             
         # Package into dictionary
-        pub_dict = {"type": pub_type,
+        pub_dict = {"full_name": topic,
+                    "type": pub_type,
                     "publisher": pub,
                     "interface": interface}
         
         # Add sub-entry into main publishers dict
-        self.publishers.update({new_key: pub_dict})
+        self.publishers.update({name: pub_dict})
         
     def publish_message(self, msg):
         """
@@ -220,12 +218,20 @@ class CSAModule(object):
         else:
             msg_to_pub = msg
         
+        # Handle full topic name if necessary
+        if pub_key != self.publishers[pub_key]["full_name"]:
+            msg_to_pub.destination = self.publishers[pub_key]["full_name"]
+            
+        # Give this module name if necessary
+        if msg_to_pub.source = "":
+            msg_to_pub.source = self.name
+        
         # Publish message over correct protocol
         if self.publishers[pub_key]["type"] == "rospy":
             self.publishers[pub_key]["publisher"].publish(msg_to_pub)
         elif self.publishers[pub_key]["type"] == "ws4py":
             self.publishers[pub_key]["publisher"].send(msg_to_pub)
-            
+        
     def publish_multiple_messages(self, msgs):
         """
         Publish multple messages at the same time.

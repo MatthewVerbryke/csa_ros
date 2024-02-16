@@ -27,6 +27,11 @@ class ActivityManagerAlgorithm(object):
         self.expect_resp = expect_resp
     
     def process_response(self, response):
+        """
+        Evaluate a response message to current output directives and 
+        determine an appropriate overall response for the control
+        directive.
+        """
         
         mode = "failure"
         params = None
@@ -34,6 +39,10 @@ class ActivityManagerAlgorithm(object):
         return mode, params
     
     def execute_activity(self, directives):
+        """
+        Given a control directive, check the requested activity and, if
+        valid, create a set of output direcitves.
+        """
         
         directives = []
         success = False

@@ -90,7 +90,7 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         else:
             params = directive.params
             self.activity = copy.deepcopy(self.act_dict[directive.name])
-            activities = self.activity.get_directive(params)
+            activities = self.activity.get_outputs(params)
             
             # Package output directives with new ids
             for act in activities:
