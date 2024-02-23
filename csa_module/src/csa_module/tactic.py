@@ -12,6 +12,7 @@
 
 
 from csa_msgs.directive import Directive
+from csa_msgs.params import convert_params_to_dict
 
 
 class Tactic(object):
@@ -21,17 +22,21 @@ class Tactic(object):
     
     def __init__(self, module_name, params, model):
         
+        # Convert str params back to native types
+        params_format = convert_params_to_dict(params)
+        
         # Initialize variables
         self.completion = "in progress"
         self.fail_msg = ""
         
         # Store parameters
         self.module_name = module_name
-        self.params = params
+        self.params = params_format
         self.continuous = False
-        self.resp_output = True
+        self.resp_output = False
+        self.evals_resp = False
         self.model = model
-        self.cur_id = int(params["rules"]["id"])
+        self.cur_id = int(params_format["rules"]["id"])
     
     def run(self, state):
         """
@@ -39,7 +44,22 @@ class Tactic(object):
         filled end by user).
         """
         
-        directives = Directive()
+        directive = Directive()
         status = True
         
-        return status, directives
+        return status, directive
+        
+    def evaluate_response(self.response):
+        """
+        Evaluate response w.r.t. this tactic. This is used to determine
+        the current execution status of multi-staged tactics, such as to
+        continue or declare success. Not needed for simple one-step 
+        tactics where success/failure is enough.
+        
+        NOTE: Will only run if 'self.eval_resp' is set to 'True'.
+        """
+        
+        mode = "failure"
+        rospy.logerr("No response evaluation function specified for tactic")
+        
+        return mode

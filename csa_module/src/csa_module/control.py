@@ -124,7 +124,7 @@ class ControlComponent(object):
             rospy.loginfo(msg + " for directive %s", self.directive.id)
         
         return ctrl_directive, arb_response
-        
+    
     def process_new_response(self, response):
         """
         Handle response messages from commanded modules.
@@ -132,30 +132,37 @@ class ControlComponent(object):
         
         # Make sure this is response to current directive
         if self.cur_id != response.id:
-            return None, None
-        
-        # Get info out of response
-        if response.status == "success":
-            success = True
-            msg = ""
-            rospy.loginfo("Directive %s execution succeded", self.directive.id)
-        elif response.status == "failure":
-            success = False
-            msg = response.reject_msg
-            rospy.loginfo("Directive %s execution failed, reason: %s", 
-                self.directive.id, msg)
-            # TODO: determine more about the failure?
+            return None, None, None
             
-        # Build response to arbitration
-        arb_response = self.get_response_to_arbitration(self.directive,
-                                                        response.status,
-                                                        msg)
-                                                        
-        # Delete directive and turn off execution flag
-        self.directive = None
-        self.executing = False
+        # Determine reaction to response
+        if self.tactic.eval_resp:
+            mode = self.tactic.evaluate_response(response)
+        else:
+            mode = response.status
         
-        return success, arb_response
+        # Determine output reaction based on reaction
+        if mode == "continue"
+            success = True
+            rerun = True
+            arb_response = None
+        elif mode == "success":
+            success = True
+            rerun = False
+            rospy.loginfo("Directive %s execution succeded", self.directive.id)
+            arb_response = self.get_response_to_arbitration(self.directive,
+                                                            "success",
+                                                            "")
+        elif mode == "failure":
+            success = False
+            rerun = False
+            rospy.loginfo("Directive %s execution failed, reason: %s", 
+                          self.directive.id, msg)
+            arb_response = self.get_response_to_arbitration(self.directive,
+                                                            "failure",
+                                                            response.reject_msg)
+            # TODO: determine more about the failure?
+        
+        return success, rerun, arb_response
         
     def attempt_replan(self):
         """
@@ -218,15 +225,22 @@ class ControlComponent(object):
             
         # Handle new response on current control directive
         elif self.executing and response is not None:
-            success, arb_response = self.process_new_response(response)
-            
-            # Set id to unused value if successful
-            if success:
-                self.cur_id = -2
-            
+            success, rerun, arb_response = self.process_new_response(response)
+                
             # Ignore repeated messages for same directive
-            elif success is None:
+            if success is None:
                 pass
+                
+            # If successful, set id to unused value
+            elif success and not rerun:
+                self.cur_id = -2
+                self.directive = None
+                self.executing = False
+            
+            # Rerun tactic if need to continue
+            elif success and rerun:
+                ctrl_directive, arb_response = self.create_control_directive(
+                    state)
             
             # Try to replan if failure in current directive 
             else:
@@ -234,7 +248,8 @@ class ControlComponent(object):
                 if got_replan:
                     arb_response = None
                 else:
-                    pass
+                    self.directive = None
+                    self.executing = False
         
         # Continue or do nothing
         else:
