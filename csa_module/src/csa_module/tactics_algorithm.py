@@ -14,9 +14,6 @@
 from diagnostic_msgs.msg import KeyValue
 import rospy
 
-from csa_msgs.param import convert_params_to_dict
-
-
 
 class TacticsAlgorithm(object):
     """

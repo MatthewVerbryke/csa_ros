@@ -105,10 +105,16 @@ class ControlComponent(object):
             # Build response if not issuing directives for tactic
             # TODO: Test
             else:
-                params = ctrl_directive.params
-                arb_response = self.get_response_to_arbitration(None, "success",
-                                                                "", params)
-            
+                if ctrl_directive is None:
+                    arb_response = None
+                    ctrl_directive = None
+                else:
+                    params = ctrl_directive.params
+                    ctrl_directive = None
+                    arb_response = self.get_response_to_arbitration(None,
+                                                                    "success",
+                                                                    "", params)
+        
         # Handle failure to create control directive
         # TODO: expand?
         else:
@@ -141,7 +147,7 @@ class ControlComponent(object):
             mode = response.status
         
         # Determine output reaction based on reaction
-        if mode == "continue"
+        if mode == "continue":
             success = True
             rerun = True
             arb_response = None

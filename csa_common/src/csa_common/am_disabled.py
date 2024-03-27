@@ -32,7 +32,7 @@ class DisabledActivityManager(ActivityManagerAlgorithm):
         
     def execute_activity(self, directive):
         
-        directives = []
+        directives = {}
         success = True
         msg = ""
         
