@@ -120,6 +120,7 @@ class CSAModule(object):
         
         # Publisher storage dicts
         self.publishers = {}
+        self.pub_adj = {}
         
         # Setup information for default subscriptions
         self.commands_topic = self.name + "/command"
@@ -167,9 +168,10 @@ class CSAModule(object):
                 prefix = self.robot + "/" + self.subsystem + "/"
             else:
                 prefix = self.subsystem + "/"
+            self.pub_adj.update({name: prefix + name})
         else:
             prefix = ""
-            
+        
         # Setup topic name
         if topic_type == Directive:
             topic = prefix + name + "/command"
@@ -187,21 +189,23 @@ class CSAModule(object):
             pub = rC.RosMsg(destination, "pub", topic, topic_type, 
                             pack_function)
             pub_type = "ws4py"
-            
+        
         # Handle the interface option
         if "interface" in config:
             interface = config["interface"]
         else:
             interface = None
-            
+        
+        # Create key for storage
+        new_key = prefix + name
+        
         # Package into dictionary
-        pub_dict = {"full_name": topic,
-                    "type": pub_type,
+        pub_dict = {"type": pub_type,
                     "publisher": pub,
                     "interface": interface}
         
         # Add sub-entry into main publishers dict
-        self.publishers.update({name: pub_dict})
+        self.publishers.update({new_key: pub_dict})
         
     def publish_message(self, msg):
         """
@@ -210,20 +214,20 @@ class CSAModule(object):
         """
         
         # Get appropriate publisher option
-        pub_key = msg.destination
+        if msg.destination in self.pub_adj.keys():
+            pub_key = self.pub_adj[msg.destination]
+            msg.destination = pub_key
+        else:
+            pub_key = msg.destination
         
         # Handle interface if needed
         if self.publishers[pub_key]["interface"] is not None:
             msg_to_pub = self.publishers[pub_key]["interface"].convert(msg)
         else:
             msg_to_pub = msg
-        
-        # Handle full topic name if necessary
-        if pub_key != self.publishers[pub_key]["full_name"]:
-            msg_to_pub.destination = self.publishers[pub_key]["full_name"]
             
         # Give this module name if necessary
-        if msg_to_pub.source = "":
+        if msg_to_pub.source == "":
             msg_to_pub.source = self.name
         
         # Publish message over correct protocol

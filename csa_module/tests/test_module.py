@@ -49,13 +49,14 @@ class ModuleTestCommander(object):
         self.stop_option = stop_option
         
         # Create and store directive object
+        deadline = rospy.Time.now() + rospy.Duration(param_inputs[4])
+        t_resp = rospy.Time.now() + rospy.Duration(dir_inputs[5])
         params = create_param_submsg(param_inputs[0], param_inputs[1],
                                      param_inputs[2], param_inputs[3],
-                                     rospy.Duration(param_inputs[4]))
+                                     deadline)
         self.directive = create_directive_msg(dir_inputs[0], dir_inputs[1],
                                               dir_inputs[2], dir_inputs[3],
-                                              dir_inputs[4], 
-                                              rospy.Time(dir_inputs[5]),
+                                              dir_inputs[4], t_resp,
                                               dir_inputs[6], params,
                                               dir_inputs[7])
         
@@ -98,7 +99,6 @@ class ModuleTestCommander(object):
         
         # Process any response
         if self.response is not None:
-            print(self.response.status)
             if self.response.status == "accept":
                 print("heard acceptance message")
                 self.got_accept = True
@@ -127,6 +127,7 @@ class ModuleTestCommander(object):
                 else:
                     if self.response is not None:
                         print("heard response!")
+                        print(self.response)
                         rospy.loginfo("Result: '%s'", self.response.status)
                         exit()
             self.rate.sleep()
