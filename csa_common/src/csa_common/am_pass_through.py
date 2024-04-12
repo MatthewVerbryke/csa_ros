@@ -33,6 +33,17 @@ class PassThroughActivityManager(ActivityManagerAlgorithm):
         expect_resp = False
         super().__init__(expect_resp)
         
+    def process_response(self, response):
+        """
+        Simple return status and params of response
+        """
+        
+        # Copy relevant response elements
+        mode = response.status
+        params = response.params
+        
+        return mode, params
+        
     def execute_activity(self, directive):
         """
         Simply return the directives
