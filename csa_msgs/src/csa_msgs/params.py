@@ -26,7 +26,7 @@ from csa_msgs.msg import Parameters
 
 def create_param_submsg(entry_conds, end_conds, criteria, rules, deadline):
     """
-    Build a "Parameters" sub-message from the input data.
+    Build a 'Parameters' sub-message from the input data.
     """
     
     # Create sub-message
@@ -41,6 +41,23 @@ def create_param_submsg(entry_conds, end_conds, criteria, rules, deadline):
     
     return msg
     
+def convert_dict_to_params(param_dict):
+    """
+    Convert a parameter dictionary into a 'Parameters' sub-message.
+    """
+    
+    # Split up input keys
+    entry_conds = param_dict["entry_conds"]
+    end_conds = param_dict["end_conds"]
+    rules = param_dict["rules"]
+    criteria = param_dict["criteria"]
+    deadline = param_dict["deadline"]
+    
+    # build message
+    msg = create_param_submsg(entry_conds, end_conds, criteria, rules, deadline)
+    
+    return msg
+
 def convert_params_to_dict(param_in):
     """
     Convert a 'Parameters' message into a dict conposed of native Python
@@ -89,7 +106,11 @@ def key_value_list_to_dict(kv_list):
     
     # Evaluate each key-value pair and store in output dictionary
     for entry in kv_list:
-        interp_value = ast.literal_eval(entry.value)
+        try:
+            interp_value = ast.literal_eval(entry.value)
+        except:
+            interp_value = entry.value
+        
         dict_out.update({entry.key: interp_value})
         
     return dict_out

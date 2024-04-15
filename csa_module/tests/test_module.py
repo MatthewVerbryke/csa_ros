@@ -50,13 +50,12 @@ class ModuleTestCommander(object):
         
         # Create and store directive object
         deadline = rospy.Time.now() + rospy.Duration(param_inputs[4])
-        t_resp = rospy.Time.now() + rospy.Duration(dir_inputs[5])
         params = create_param_submsg(param_inputs[0], param_inputs[1],
                                      param_inputs[2], param_inputs[3],
                                      deadline)
         self.directive = create_directive_msg(dir_inputs[0], dir_inputs[1],
                                               dir_inputs[2], dir_inputs[3],
-                                              dir_inputs[4], t_resp,
+                                              dir_inputs[4], dir_inputs[5],
                                               dir_inputs[6], params,
                                               dir_inputs[7])
         
