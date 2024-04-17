@@ -27,10 +27,12 @@ class TacticsComponent(object):
         - Returns this tactic to the control component
     """
     
-    def __init__(self, module_name, tactics_algorithm):
+    def __init__(self, module_name, tactics_algorithm, rate, latency):
         
-        # Variables
+        # Parameters
         self.tactics_algorithm = tactics_algorithm  
+        self.rate = rate
+        self.latency = latency
         
         # Give module name to tactic algorithm
         self.tactics_algorithm.get_module_name(module_name)

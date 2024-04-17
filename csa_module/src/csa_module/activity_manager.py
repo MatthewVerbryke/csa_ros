@@ -15,7 +15,6 @@ import rospy
 
 from csa_msgs.msg import Directive, Response
 from csa_msgs.response import create_response_msg
-from csa_msgs.directive import create_directive_msg
 
 
 class ActivityManagerComponent(object):

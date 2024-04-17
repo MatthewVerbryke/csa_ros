@@ -63,17 +63,14 @@ class CSAModule(object):
         # Signal initialization
         rospy.loginfo("'%s' node initialized", self.name)
         
-        # Set 'expect_resp' parameter for AM algorithm
-        #am_algorithm.expect_resp = self.expect_resp
-        
         # Setup system model
         self.setup_model(model, model_params)
         
         # Setup main components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
                                                 max_directives)
-        self.control = ControlComponent(self.name, tact_algorithm, latency, 
-                                        tolerance, self.model)
+        self.control = ControlComponent(self.name, tact_algorithm, self.rate, 
+                                        latency, tolerance, self.model)
         self.activity_manager = ActivityManagerComponent(self.name,
                                                          am_algorithm)
         
@@ -135,14 +132,11 @@ class CSAModule(object):
             self.state_format = value["type"]
         
         # Initialize common subscriptions
-        self.command_sub = rospy.Subscriber(self.commands_topic,
-                                            Directive,
+        self.command_sub = rospy.Subscriber(self.commands_topic, Directive,
                                             self.command_callback)
-        self.response_sub = rospy.Subscriber(self.responses_topic,
-                                             Response,
+        self.response_sub = rospy.Subscriber(self.responses_topic, Response,
                                              self.response_callback)
-        self.state_sub = rospy.Subscriber(self.state_topic,
-                                          self.state_format,
+        self.state_sub = rospy.Subscriber(self.state_topic, self.state_format,
                                           self.state_callback)
         
         # Setup all required command publishers for other modules
@@ -151,7 +145,7 @@ class CSAModule(object):
         
         # Signal completion
         rospy.loginfo("Communication interfaces setup")
-    
+        
     def setup_publisher(self, name, config):
         """
         Setup individual publisher.
@@ -226,10 +220,10 @@ class CSAModule(object):
         else:
             msg_to_pub = msg
             
-        # Give this module name if necessary
-        if msg_to_pub.source == "":
-            msg_to_pub.source = self.name
-        
+            # Give this module name if necessary
+            if msg_to_pub.source == "":
+                msg_to_pub.source = self.name
+            
         # Publish message over correct protocol
         if self.publishers[pub_key]["type"] == "rospy":
             self.publishers[pub_key]["publisher"].publish(msg_to_pub)

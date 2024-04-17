@@ -15,7 +15,6 @@ import rospy
 
 from csa_msgs.msg import Directive, Response
 from csa_msgs.response import create_response_msg
-from csa_msgs.directive import create_directive_msg
 from csa_module.tactics import TacticsComponent
 
 
@@ -35,8 +34,8 @@ class ControlComponent(object):
           arbitration component
     """
     
-    def __init__(self, module_name, tactics_algorithm, latency, tolerance,
-                 model):
+    def __init__(self, module_name, tactics_algorithm, rate, latency,
+                 tolerance, model):
 
         # Initialize variables
         self.cur_id = -2
@@ -45,17 +44,19 @@ class ControlComponent(object):
         
         # Store input parameters
         self.module_name = module_name
+        self.rate = rate
         self.latency = latency
-        self.tolerance = tolerance
         self.model = model
         
         # Flag variables
         self.executing = False
         
         # Initialize tactics component
-        # TODO: fix this
+        # TODO: fix this?
         self.tactics_component = TacticsComponent(module_name, 
-                                                  tactics_algorithm)
+                                                  tactics_algorithm,
+                                                  rate,
+                                                  latency)
     
     def request_tactic(self, directive, state):
         """
@@ -102,6 +103,14 @@ class ControlComponent(object):
                 if not self.executing:
                     self.executing = True
                     
+                # If tactic indicates completion, get success response
+                if self.tactic.completed:
+                    rospy.loginfo("Directive %s execution succeded",
+                                  self.directive.id)
+                    arb_response = self.get_response_to_arbitration(None,
+                                                                    "success",
+                                                                    "")
+            
             # Build response if not issuing directives for tactic
             # TODO: Test
             else:
@@ -141,7 +150,7 @@ class ControlComponent(object):
             return None, None, None
             
         # Determine reaction to response
-        if self.tactic.eval_resp:
+        if self.tactic.evals_resp:
             mode = self.tactic.evaluate_response(response)
         else:
             mode = response.status
@@ -156,13 +165,12 @@ class ControlComponent(object):
             rerun = False
             rospy.loginfo("Directive %s execution succeded", self.directive.id)
             arb_response = self.get_response_to_arbitration(self.directive,
-                                                            "success",
-                                                            "")
+                                                            "success", "")
         elif mode == "failure":
             success = False
             rerun = False
             rospy.loginfo("Directive %s execution failed, reason: %s", 
-                          self.directive.id, msg)
+                          self.directive.id, response.reject_msg)
             arb_response = self.get_response_to_arbitration(self.directive,
                                                             "failure",
                                                             response.reject_msg)

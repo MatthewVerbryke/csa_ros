@@ -11,22 +11,17 @@
 """
 
 
-import rospy
-
-from csa_msgs.directive import create_directive_msg
-from csa_msgs.msg import Directive, Response
-from csa_msgs.param import create_param_submsg, convert_params_to_dict
-from csa_msgs.response import create_response_msg
-
-
 class Activity(object):
     """
     Base class object for activities. Intended for use with the
     'DiscreteActivityManager' class in the common applications package.
     """
     
-    def __init__(self):
-        pass
+    def __init__(self, name, dests):
+        
+        self.name = name
+        self.dests = dests
+        self.source = ""
         
     def get_outputs(self, params):
         """

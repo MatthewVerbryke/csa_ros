@@ -126,13 +126,9 @@ class ArbitrationComponent(object):
         
         # Create a response message    
         else:
-            response_msg = create_response_msg(directive.id,
-                                               self.module_name,
-                                               directive.source,
-                                               msg_type,
-                                               msg,
-                                               params,
-                                               None)
+            response_msg = create_response_msg(directive.id, self.module_name,
+                                               directive.source, msg_type, msg,
+                                               params, None)
         
         return response_msg
         

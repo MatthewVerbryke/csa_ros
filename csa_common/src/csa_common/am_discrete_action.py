@@ -15,6 +15,7 @@ import copy
 
 from csa_common.activity import Activity
 from csa_module.activity_manager_algorithm import ActivityManagerAlgorithm
+from csa_msgs.params import convert_params_to_dict
 
 
 class DiscreteActivityManager(ActivityManagerAlgorithm):
@@ -50,10 +51,14 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         """
         
         # Get out parameters
-        params = response.params
+        params = convert_params_to_dict(response.params)
         
-        # If successful determine if continue or finish
-        if response.status == "success":
+        # If 'accept' meassage, continue
+        if response.status == "accept":
+            mode = "continue"
+        
+        # else if successful determine if continue or finish
+        elif response.status == "success":
             finished = self.activity.check_response(response)
             if finished:
                 mode = "success"
@@ -61,7 +66,7 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
                 mode = "continue"
         
         # Otherwise fail up to control
-        elif response.status == "failure":
+        else:
             mode = "failure"
         
         return mode, params
@@ -88,18 +93,20 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         
         # Determine output directives
         else:
-            params = directive.params
+            params = convert_params_to_dict(directive.params)
             self.activity = copy.deepcopy(self.act_dict[directive.name])
             activities = self.activity.get_outputs(params)
+            success = True
             
             # Package output directives with new ids
-            for act in activities:
-                self.id_count += 1
-                act.id = self.id_count
-                directives_out.update({act.id: act})
+            if success:
+                for act in activities:
+                    self.id_count += 1
+                    act.id = self.id_count
+                    directives_out.update({act.id: act})
             
-            # Store outputs for later tracking
-            self.cur_directives = directives_out
+                # Store outputs for later tracking
+                self.cur_directives = directives_out
         
         return directives_out, success, msg
     

@@ -13,11 +13,6 @@
 
 import rospy
 
-from csa_msgs.msg import Directive, Response
-from csa_msgs.response import create_response_msg
-from csa_msgs.directive import create_directive_msg
-from csa_msgs.params import convert_params_to_dict
-
 
 class ActivityManagerAlgorithm(object):
     """

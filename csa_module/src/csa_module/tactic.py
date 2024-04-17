@@ -13,8 +13,8 @@
 
 import rospy
 
-from csa_msgs.directive import create_directive_msg
-from csa_msgs.msg import Directive
+from csa_msgs.msg import Directive, Parameters
+from csa_msgs.params import convert_params_to_dict
 
 
 class Tactic(object):
@@ -24,27 +24,38 @@ class Tactic(object):
     
     def __init__(self, module_name, params, model):
         
-        # Initialize variables
-        self.completion = "in progress"
-        self.fail_msg = ""
+        # Convert params to dict if not already
+        if type(params) == Parameters:
+            self.params = convert_params_to_dict(params)
+        elif type(params) == dict:
+            self.params = params
+        else:
+            rospy.logerr("Invalid params input type: {}".format(type(params)))
         
         # Store parameters
         self.module_name = module_name
-        self.params = params
+        self.model = model
+        self.cur_id = int(self.params["rules"]["id"])
+        
+        # Initialize variables
+        self.completion = "in progress"
+        self.fail_msg = ""
         self.continuous = False
         self.resp_output = False
         self.evals_resp = False
-        self.model = model
-        self.cur_id = int(params["rules"]["id"])
-    
+        self.completed = False
+        
+        # Delete id from params
+        self.params["rules"].pop("id")
+        
     def run(self, state):
         """
         Run the tactic and get a list of directives out (needs to be 
         filled end by user).
         """
         
-        directive = Directive()
-        status = True
+        directive = None
+        status = False
         
         return status, directive
         
