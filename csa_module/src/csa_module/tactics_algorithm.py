@@ -27,12 +27,14 @@ class TacticsAlgorithm(object):
         
         # TODO: add checks for this ^?
         
-    def get_module_name(self, module_name):
+    def get_module_info(self, module_name, rate, latency):
         """
-        Store the name of the module (used to give a module source to 
-        directives)
+        Store important information about module, including its name,
+        execution rate, and expected latency.
         """
         self.module_name = module_name
+        self.rate = rate
+        self.latency = latency
         
     def get_cur_id(self, directive):
         """

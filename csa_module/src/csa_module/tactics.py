@@ -34,8 +34,8 @@ class TacticsComponent(object):
         self.rate = rate
         self.latency = latency
         
-        # Give module name to tactic algorithm
-        self.tactics_algorithm.get_module_name(module_name)
+        # Give relevant parameters to tactic algorithm
+        self.tactics_algorithm.get_module_info(module_name, rate, latency)
         
     def run(self, directive, state, model):
         """
