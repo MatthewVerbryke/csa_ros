@@ -106,9 +106,10 @@ def key_value_list_to_dict(kv_list):
     
     # Evaluate each key-value pair and store in output dictionary
     for entry in kv_list:
+        
         try:
             interp_value = ast.literal_eval(entry.value)
-        except:
+        except ValueError:# TODO: Fix this: catches strings, but not ideal
             interp_value = entry.value
         
         dict_out.update({entry.key: interp_value})
