@@ -49,7 +49,8 @@ class CSAModule(object):
         self.subsystem = rospy.get_param("~subsystem", "")
         self.robot = rospy.get_param("~robot", "")
         model_params = rospy.get_param("~model_config", {})
-        self.rate = rospy.Rate(rospy.get_param("~rate", 30))
+        rate = rospy.get_param("~rate", 30.0)
+        self.rate = rospy.Rate(rate)
         max_directives = rospy.get_param("~max_dirs", 2)
         latency = rospy.get_param("~latency", 0.01)
         tolerance = rospy.get_param("~tolerance", 0.1)
@@ -69,7 +70,7 @@ class CSAModule(object):
         # Setup main components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
                                                 max_directives)
-        self.control = ControlComponent(self.name, tact_algorithm, self.rate, 
+        self.control = ControlComponent(self.name, tact_algorithm, rate, 
                                         latency, tolerance, self.model)
         self.activity_manager = ActivityManagerComponent(self.name,
                                                          am_algorithm)
