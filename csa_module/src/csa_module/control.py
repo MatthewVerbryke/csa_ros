@@ -79,8 +79,8 @@ class ControlComponent(object):
         # Handle failure to find tactic
         else:
             msg = "Failed to find tactic"
-            response = self.get_response_to_arbitration(directive, msg,
-                                                        "failure")
+            response = self.get_response_to_arbitration(directive, "failure",
+                                                        msg)
             self.directive = None
             self.tactic = None
             rospy.loginfo("Failed to get tactic")
