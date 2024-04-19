@@ -236,11 +236,11 @@ class ControlComponent(object):
                     state)
             else:
                 self.executing = False       
-            
+        
         # Handle new response on current control directive
         elif self.executing and response is not None:
             success, rerun, arb_response = self.process_new_response(response)
-                
+            
             # Ignore repeated messages for same directive
             if success is None:
                 pass

@@ -22,8 +22,6 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
     """
     An activity manager for a preselected set of discrete activities to
     execute.
-    
-    TODO: Test
     """
     
     def __init__(self, act_list):
@@ -93,7 +91,11 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         
         # Determine output directives
         else:
-            params = convert_params_to_dict(directive.params)
+            #TODO: better fix for this
+            if type(directive.params) != dict:
+                params = convert_params_to_dict(directive.params)
+            else:
+                params = directive.params
             self.activity = copy.deepcopy(self.act_dict[directive.name])
             activities = self.activity.get_outputs(params)
             success = True
