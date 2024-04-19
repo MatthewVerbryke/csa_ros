@@ -3,7 +3,7 @@
 """
   Test code for CSA Control component.
   
-  Copyright 2023 University of Cincinnati
+  Copyright 2023-2024 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -20,41 +20,45 @@ from csa_module.tactics_algorithm import TacticsAlgorithm
 from csa_module.tactic import Tactic
 
 
-class Tactic1(Tactic):
+class FakeModel(object):
     
     def __init__(self):
-        super().__init__({})
         pass
+
+class Tactic1(Tactic):
+    
+    def __init__(self, module_name, params, model):
+        super().__init__(module_name, params, model)
         
     def run(self, state):
         directive = Directive()
+        directive.name = "tactic_1"
         directive.priority = state.data + 10
         return True,[directive]
 
 class Tactic2(Tactic):
     
-    def __init__(self):
-        super().__init__({})
-        pass
+    def __init__(self, module_name, params, model):
+        super().__init__(module_name, params, model)
         
     def run(self, state):
         directive = Directive()
+        directive.name = "tactic_2"
         directive.priority = state.data*10
         return True,[directive]
 
 class FakeTacticAlgorithm(TacticsAlgorithm):   
     
-    def __init__(self):
-        tactic_list = ["tactic_1", "tactic_2"]
+    def __init__(self, tactic_list):
         super().__init__(tactic_list)
         
-    def run(self, directive, state):
+    def run(self, directive, state, model):
         if directive.name == "tactic_1":
             status = True
-            tactic = Tactic1()
+            tactic = Tactic1(self.module_name, None, model)
         elif directive.name == "tactic_2":
             status = True
-            tactic = Tactic2()
+            tactic = Tactic2(self.module_name, None, model)
         elif directive.name == "tactic_3":
             status = False
             tactic = None
@@ -75,13 +79,15 @@ class TestControlComponent(object):
         
         # Setup necessary inputs
         name = "test_control"
-        tactic_selection = FakeTacticAlgorithm()
+        tactic_list = ["tactic_1", "tactic_2"]
+        tactic_selection = FakeTacticAlgorithm(tactic_list)
         latency = 1.0
         tolerance = 0.1
+        model = FakeModel()
         
         # Initialize component
         self.control = ControlComponent(name, tactic_selection, latency,
-                                        tolerance)
+                                        tolerance, model)
         
     def test_nominal_operation(self):
         """
@@ -194,7 +200,7 @@ class TestControlComponent(object):
         # New directive from standby
         direct_3 = Directive()
         direct_3.name = "tactic_2"
-        direct_3.id = 3
+        direct_3.id = 4
         output = self.control.run(direct_3, None, state)
         self.print_status(output)
         
@@ -204,7 +210,7 @@ class TestControlComponent(object):
         
         # Success response
         resp_1 = Response()
-        resp_1.id = 3
+        resp_1.id = 4
         resp_1.status = "success"
         output = self.control.run(None, resp_1, state)
         self.print_status(output)
@@ -237,7 +243,7 @@ class TestControlComponent(object):
         # New directive from standby
         direct_2 = Directive()
         direct_2.name = "tactic_2"
-        direct_2.id = 4
+        direct_2.id = 5
         output = self.control.run(direct_2, None, state)
         self.print_status(output)
         
@@ -245,9 +251,9 @@ class TestControlComponent(object):
         output = self.control.run(None, None, state)
         self.print_status(output)
         
-        # Success response
+        # Failure response
         resp_1 = Response()
-        resp_1.id = 4
+        resp_1.id = 5
         resp_1.status = "failure"
         resp_1.reject_msg = "User created test failure"
         output = self.control.run(None, resp_1, state)

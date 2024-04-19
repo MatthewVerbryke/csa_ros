@@ -38,7 +38,7 @@ def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params
     msg.description = desc
     msg.source = src
     msg.destination = dest
-    msg.response_time = t_resp
+    msg.response_time = rospy.Time.now() + rospy.Duration(t_resp)
     msg.priority = priority
     
     # Handle None parameter input

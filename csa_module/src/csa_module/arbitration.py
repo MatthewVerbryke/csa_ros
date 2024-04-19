@@ -115,7 +115,7 @@ class ArbitrationComponent(object):
         
         return success, msg
     
-    def get_response_to_commander(self, directive, msg_type, msg):
+    def get_response_to_commander(self, directive, msg_type, msg, params):
         """
         Build a response message to the commanding module.
         """
@@ -126,13 +126,9 @@ class ArbitrationComponent(object):
         
         # Create a response message    
         else:
-            response_msg = create_response_msg(directive.id,
-                                               self.module_name,
-                                               directive.source,
-                                               msg_type,
-                                               msg,
-                                               None,
-                                               None)
+            response_msg = create_response_msg(directive.id, self.module_name,
+                                               directive.source, msg_type, msg,
+                                               params, None)
         
         return response_msg
         
@@ -206,7 +202,8 @@ class ArbitrationComponent(object):
                 msg_type = "accept"
             else:
                 msg_type = "reject"
-            cmdr_msg = self.get_response_to_commander(directive, msg_type, msg)
+            cmdr_msg = self.get_response_to_commander(directive, msg_type,
+                                                      msg, None)
             
             # Arbitrate over directives
             if is_okay:
@@ -233,7 +230,8 @@ class ArbitrationComponent(object):
             else:
                 msg_type = "failure"
             cmdr_msg = self.get_response_to_commander(self.cur_directive,
-                                                      msg_type, msg)
+                                                      msg_type, msg,
+                                                      response.params)
             
             # Cleanup the completed/failed directive
             if len(self.directives) != 0:

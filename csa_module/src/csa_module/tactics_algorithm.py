@@ -3,12 +3,16 @@
 """
   Generic CSA tactic selection algorithm base class source code.
   
-  Copyright 2023 University of Cincinnati
+  Copyright 2023-2024 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
   history.
 """
+
+
+from diagnostic_msgs.msg import KeyValue
+import rospy
 
 
 class TacticsAlgorithm(object):
@@ -23,12 +27,25 @@ class TacticsAlgorithm(object):
         
         # TODO: add checks for this ^?
         
-    def get_module_name(self, module_name):
+    def get_module_info(self, module_name, rate, latency):
         """
-        Store the name of the module (used to give a module source to 
-        directives)
+        Store important information about module, including its name,
+        execution rate, and expected latency.
         """
         self.module_name = module_name
+        self.rate = rate
+        self.latency = latency
+        
+    def get_cur_id(self, directive):
+        """
+        Retrieve the current ID number from the directive, so various
+        tactics have it when running.
+        """
+        id_kv = KeyValue()
+        id_kv.key = "id"
+        id_kv.value = str(directive.id)
+        
+        return id_kv
     
     def run(self, directive, state, model):
         """
@@ -36,7 +53,7 @@ class TacticsAlgorithm(object):
         user).
         """
         
-        tactics = [""]
-        status = True
+        tactics = None
+        status = False
         
         return success, tactics

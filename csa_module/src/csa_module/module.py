@@ -3,7 +3,7 @@
 """
   CSA module main module source code.
   
-  Copyright 2022-2023 University of Cincinnati
+  Copyright 2022-2024 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -49,7 +49,8 @@ class CSAModule(object):
         self.subsystem = rospy.get_param("~subsystem", "")
         self.robot = rospy.get_param("~robot", "")
         model_params = rospy.get_param("~model_config", {})
-        self.rate = rospy.Rate(rospy.get_param("~rate", 30))
+        rate = rospy.get_param("~rate", 30.0)
+        self.rate = rospy.Rate(rate)
         max_directives = rospy.get_param("~max_dirs", 2)
         latency = rospy.get_param("~latency", 0.01)
         tolerance = rospy.get_param("~tolerance", 0.1)
@@ -63,17 +64,14 @@ class CSAModule(object):
         # Signal initialization
         rospy.loginfo("'%s' node initialized", self.name)
         
-        # Set 'expect_resp' parameter for AM algorithm
-        am_algorithm.expect_resp = self.expect_resp
-        
         # Setup system model
         self.setup_model(model, model_params)
         
         # Setup main components
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
                                                 max_directives)
-        self.control = ControlComponent(self.name, tact_algorithm, latency, 
-                                        tolerance, self.model)
+        self.control = ControlComponent(self.name, tact_algorithm, rate, 
+                                        latency, tolerance, self.model)
         self.activity_manager = ActivityManagerComponent(self.name,
                                                          am_algorithm)
         
@@ -120,6 +118,7 @@ class CSAModule(object):
         
         # Publisher storage dicts
         self.publishers = {}
+        self.pub_adj = {}
         
         # Setup information for default subscriptions
         self.commands_topic = self.name + "/command"
@@ -134,14 +133,11 @@ class CSAModule(object):
             self.state_format = value["type"]
         
         # Initialize common subscriptions
-        self.command_sub = rospy.Subscriber(self.commands_topic,
-                                            Directive,
+        self.command_sub = rospy.Subscriber(self.commands_topic, Directive,
                                             self.command_callback)
-        self.response_sub = rospy.Subscriber(self.responses_topic,
-                                             Response,
+        self.response_sub = rospy.Subscriber(self.responses_topic, Response,
                                              self.response_callback)
-        self.state_sub = rospy.Subscriber(self.state_topic,
-                                          self.state_format,
+        self.state_sub = rospy.Subscriber(self.state_topic, self.state_format,
                                           self.state_callback)
         
         # Setup all required command publishers for other modules
@@ -150,7 +146,7 @@ class CSAModule(object):
         
         # Signal completion
         rospy.loginfo("Communication interfaces setup")
-    
+        
     def setup_publisher(self, name, config):
         """
         Setup individual publisher.
@@ -167,9 +163,10 @@ class CSAModule(object):
                 prefix = self.robot + "/" + self.subsystem + "/"
             else:
                 prefix = self.subsystem + "/"
+            self.pub_adj.update({name: prefix + name})
         else:
             prefix = ""
-            
+        
         # Setup topic name
         if topic_type == Directive:
             topic = prefix + name + "/command"
@@ -177,9 +174,6 @@ class CSAModule(object):
             topic = prefix + name + "/response"
         else:
             topic = prefix + name
-        
-        #
-        new_key = self.subsystem + "/" + name
         
         # Create publishers using rospy ("local") or websockets
         if destination == "local":
@@ -190,13 +184,16 @@ class CSAModule(object):
             pub = rC.RosMsg(destination, "pub", topic, topic_type, 
                             pack_function)
             pub_type = "ws4py"
-            
+        
         # Handle the interface option
         if "interface" in config:
             interface = config["interface"]
         else:
             interface = None
-            
+        
+        # Create key for storage
+        new_key = prefix + name
+        
         # Package into dictionary
         pub_dict = {"type": pub_type,
                     "publisher": pub,
@@ -212,20 +209,28 @@ class CSAModule(object):
         """
         
         # Get appropriate publisher option
-        pub_key = msg.destination
+        if msg.destination in self.pub_adj.keys():
+            pub_key = self.pub_adj[msg.destination]
+            msg.destination = pub_key
+        else:
+            pub_key = msg.destination
         
         # Handle interface if needed
         if self.publishers[pub_key]["interface"] is not None:
             msg_to_pub = self.publishers[pub_key]["interface"].convert(msg)
         else:
             msg_to_pub = msg
-        
+            
+            # Give this module name if necessary
+            if msg_to_pub.source == "":
+                msg_to_pub.source = self.name
+            
         # Publish message over correct protocol
         if self.publishers[pub_key]["type"] == "rospy":
             self.publishers[pub_key]["publisher"].publish(msg_to_pub)
         elif self.publishers[pub_key]["type"] == "ws4py":
             self.publishers[pub_key]["publisher"].send(msg_to_pub)
-            
+        
     def publish_multiple_messages(self, msgs):
         """
         Publish multple messages at the same time.
@@ -283,7 +288,7 @@ class CSAModule(object):
             self.check_for_completion()
         
         # Check for new response(s)
-        am_output = self.activity_manager.run([None], self.response)
+        am_output = self.activity_manager.run(None, self.response)
         am_directives = am_output[0]
         am_responses = am_output[1]
         
@@ -293,13 +298,13 @@ class CSAModule(object):
         
         # Run Control
         ctrl_output = self.control.run(arb_directive, am_responses, self.state)
-        ctrl_directives = ctrl_output[0]
+        ctrl_directive = ctrl_output[0]
         ctrl_response = ctrl_output[1]
         
         # Run activity manager
-        am_output = self.activity_manager.run(ctrl_directives, None)
+        am_output = self.activity_manager.run(ctrl_directive, None)
         am_directives = am_output[0]
-        am_responses = am_output[1]
+        am_response = am_output[1]
         
         # Issue command(s)
         if am_directives is not None:

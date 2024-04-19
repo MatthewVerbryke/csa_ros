@@ -11,6 +11,8 @@
 """
 
 
+import copy
+
 import rospy
 
 from csa_module.activity_manager import ActivityManagerComponent
@@ -23,14 +25,32 @@ class TestAMAlgorithm(ActivityManagerAlgorithm):
     def __init__(self):
         expect_resp = True
         super().__init__(expect_resp)
+        self.case = 2
+               
+    def execute_activity(self, directive):
+        if directive.name == "state_2":
+            directive_out = [directive]
+            self.outs = 1
+        elif directive.name == "state_3":
+            direct_1 = copy.deepcopy(directive)
+            direct_1.id = 3
+            direct_2 = copy.deepcopy(directive)
+            direct_2.id = 4
+            directive_out = [direct_1, direct_2]
+            self.outs = 2
         
-    def run(self, directives):
-        id_list = []
-        for key in directives:
-            id_list.append(key)
-        min_id = min(id_list)
+        return directive_out, True, ""
         
-        return [directives[min_id]], True, ""
+    def process_response(self, response):
+        if self.outs == 1:
+            mode_out = response.status
+            params_out = response.params
+        else:
+            mode_out = "continue"
+            params_out = None
+            self.outs -= 1
+        
+        return mode_out, params_out
 
 class TestActivityManager(object):
     """
@@ -72,13 +92,12 @@ class TestActivityManager(object):
         direct_1 = Directive()
         direct_1.name = "state_2"
         direct_1.id = 1
-        output = self.am.run([direct_1], None)
+        output = self.am.run(direct_1, None)
         self.print_status(output)
     
         # Ensure no directives remain
-        print("'self.directives' list:")
-        print(self.am.directives)
-        print(self.am.cur_directives)
+        print("'self.directive':")
+        print(self.am.directive)
         print("")
     
         # Running no new response
@@ -105,7 +124,7 @@ class TestActivityManager(object):
         direct_1 = Directive()
         direct_1.name = "state_2"
         direct_1.id = 2
-        output = self.am.run([direct_1], None)
+        output = self.am.run(direct_1, None)
         self.print_status(output)
     
         # Running no new response
@@ -116,22 +135,24 @@ class TestActivityManager(object):
         resp_1 = Response()
         resp_1.id = 2
         resp_1.status = "success"
-        output = self.am.run(None, [resp_1])
+        output = self.am.run(None, resp_1)
         self.print_status(output)
         
         # Ensure no directives remain
-        print("'self.directives' list:")
-        print(self.am.directives)
-        print(self.am.cur_directives)
+        print("'self.directive':")
+        print(self.am.directive)
+        print("executing?:")
+        print(self.am.executing)
         print("")
         
-    def test_nominal_operation_multidirective(self):
+    def test_nominal_operation_multioutput(self):
         """
-        Test the component's nominal operation pattern.
+        Test the component's nominal operation pattern with multple
+        outputs.
         """
         
         print("")
-        print("TEST 3 - NOMINAL OPERATION W/ MULTIPLE DIRECTIVES")
+        print("TEST 3 - NOMINAL OPERATION W/ MULTIPLE OUTPUT DIRECTIVES")
         print("-----------------------------------------------------")
         
         # Standing by with no new directive
@@ -140,13 +161,9 @@ class TestActivityManager(object):
         
         # New directive from standby
         direct_1 = Directive()
-        direct_1.name = "state_2"
+        direct_1.name = "state_3"
         direct_1.id = 3
-        direct_2 = Directive()
-        direct_2.name = "state_2"
-        direct_2.id = 4
-        directives = [direct_1, direct_2]
-        output = self.am.run(directives, None)
+        output = self.am.run(direct_1, None)
         self.print_status(output)
         
         # Running no new response
@@ -157,7 +174,7 @@ class TestActivityManager(object):
         resp_1 = Response()
         resp_1.id = 3
         resp_1.status = "success"
-        output = self.am.run(None, [resp_1])
+        output = self.am.run(None, resp_1)
         self.print_status(output)
         
         # Running no new response
@@ -168,81 +185,14 @@ class TestActivityManager(object):
         resp_2 = Response()
         resp_2.id = 4
         resp_2.status = "success"
-        output = self.am.run(None, [resp_2])
+        output = self.am.run(None, resp_2)
         self.print_status(output)
         
         # Ensure no directives remain
-        print("'self.directives' list:")
-        print(self.am.directives)
-        print(self.am.cur_directives)
-        print("")
-
-    def test_nominal_operation_replace_seq(self):
-        """
-        Test component handling of new directive(s) while exectuing.
-        """
-        
-        print("")
-        print("TEST 4 - NEW DIRECTIVE DURING EXECUTION")
-        print("-----------------------------------------------------")
-        
-        # Standing by with no new directive
-        output = self.am.run(None, None)
-        self.print_status(output)
-        
-        # New directive from standby
-        direct_1 = Directive()
-        direct_1.name = "state_2"
-        direct_1.id = 5
-        direct_2 = Directive()
-        direct_2.name = "state_2"
-        direct_2.id = 6
-        directives = [direct_1, direct_2]
-        output = self.am.run(directives, None)
-        self.print_status(output)
-        
-        # Running no new response
-        output = self.am.run(None, None)
-        self.print_status(output)
-        
-        # Running got response
-        resp_1 = Response()
-        resp_1.id = 5
-        resp_1.status = "success"
-        output = self.am.run(None, [resp_1])
-        self.print_status(output)
-        
-        # Running no new response
-        output = self.am.run(None, None)
-        self.print_status(output)
-        
-        # New directive while running
-        direct_3 = Directive()
-        direct_3.name = "state_2"
-        direct_3.id = 7
-        directives = [direct_3]
-        output = self.am.run(directives, None)
-        self.print_status(output)
-        
-        # Running no new response
-        output = self.am.run(None, None)
-        self.print_status(output)
-        
-        # Running got response
-        resp_3 = Response()
-        resp_3.id = 7
-        resp_3.status = "success"
-        output = self.am.run(None, [resp_3])
-        self.print_status(output)
-        
-        # Running no new response
-        output = self.am.run(None, None)
-        self.print_status(output)
-        
-        # Ensure no directives remain
-        print("'self.directives' list:")
-        print(self.am.directives)
-        print(self.am.cur_directives)
+        print("'self.directive':")
+        print(self.am.directive)
+        print("executing?:")
+        print(self.am.executing)
         print("")
     
     def test_failure(self):
@@ -252,9 +202,9 @@ class TestActivityManager(object):
         """
         
         print("")
-        print("TEST 5 - HANDLE FAILED DIRECTIVE")
+        print("TEST 4 - HANDLE FAILED DIRECTIVE")
         print("-----------------------------------------------------")
-        
+    
         # Standing by with no new directive
         output = self.am.run(None, None)
         self.print_status(output)
@@ -262,12 +212,8 @@ class TestActivityManager(object):
         # New directive from standby
         direct_1 = Directive()
         direct_1.name = "state_2"
-        direct_1.id = 8
-        direct_2 = Directive()
-        direct_2.name = "state_2"
-        direct_2.id = 9
-        directives = [direct_1, direct_2]
-        output = self.am.run(directives, None)
+        direct_1.id = 4
+        output = self.am.run(direct_1, None)
         self.print_status(output)
         
         # Running no new response
@@ -276,16 +222,17 @@ class TestActivityManager(object):
         
         # Running got response
         resp_1 = Response()
-        resp_1.id = 8
+        resp_1.id = 5
         resp_1.status = "failure"
         resp_1.reject_msg = "User commanded failure"
-        output = self.am.run(None, [resp_1])
+        output = self.am.run(None, resp_1)
         self.print_status(output)
         
         # Ensure no directives remain
-        print("'self.directives' list:")
-        print(self.am.directives)
-        print(self.am.cur_directives)
+        print("'self.directive':")
+        print(self.am.directive)
+        print("executing?:")
+        print(self.am.executing)
         print("")
         
     def print_status(self, output):
@@ -293,12 +240,8 @@ class TestActivityManager(object):
         Print cleaned up outputs of current module.
         """
         
-        id_list = []
-        for key in self.am.cur_directives:
-            id_list.append(key)
-        
-        print("Current IDs:")
-        print(id_list)
+        print("Current ID:")
+        print(self.am.cur_id)
         print("Directive Out:")
         print(output[0])
         print("Response Out:")
@@ -317,10 +260,7 @@ if __name__ == "__main__":
     am_test.test_nominal_operation_response()
     
     # Run Test 3
-    am_test.test_nominal_operation_multidirective()
+    am_test.test_nominal_operation_multioutput()
     
     # Run Test 4
-    am_test.test_nominal_operation_replace_seq()
-    
-    # Run Test 5
     am_test.test_failure()

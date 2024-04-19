@@ -27,7 +27,8 @@ class ModuleTestCommander(object):
     directive, and listening to the response(s). 
     """
     
-    def __init__(self, fake_name, pub_topic, param_inputs, dir_inputs):
+    def __init__(self, fake_name, stop_option, pub_topic, param_inputs,
+                 dir_inputs):
         
         # Initialize rospy node
         rospy.init_node("module_commander")
@@ -44,14 +45,17 @@ class ModuleTestCommander(object):
         # Get rospy rate object
         self.rate = rospy.Rate(30.0)
         
+        # Store stop option
+        self.stop_option = stop_option
+        
         # Create and store directive object
+        deadline = rospy.Time.now() + rospy.Duration(param_inputs[4])
         params = create_param_submsg(param_inputs[0], param_inputs[1],
                                      param_inputs[2], param_inputs[3],
-                                     rospy.Duration(param_inputs[4]))
+                                     deadline)
         self.directive = create_directive_msg(dir_inputs[0], dir_inputs[1],
                                               dir_inputs[2], dir_inputs[3],
-                                              dir_inputs[4], 
-                                              rospy.Time(dir_inputs[5]),
+                                              dir_inputs[4], dir_inputs[5],
                                               dir_inputs[6], params,
                                               dir_inputs[7])
         
@@ -94,7 +98,6 @@ class ModuleTestCommander(object):
         
         # Process any response
         if self.response is not None:
-            print(self.response.status)
             if self.response.status == "accept":
                 print("heard acceptance message")
                 self.got_accept = True
@@ -117,10 +120,15 @@ class ModuleTestCommander(object):
             if not self.got_accept:
                 self.send_until_accepted()
             else:
-                if self.response is not None:
-                    print("heard response!")
-                    rospy.loginfo("Result: '%s'", self.response.status)
-                    exit()
+                if self.stop_option:
+                    rospy.loginfo("Stoping node due to stop option True")
+                    break
+                else:
+                    if self.response is not None:
+                        print("heard response!")
+                        print(self.response)
+                        rospy.loginfo("Result: '%s'", self.response.status)
+                        exit()
             self.rate.sleep()
         
     def cleanup(self):
