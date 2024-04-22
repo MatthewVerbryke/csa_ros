@@ -3,7 +3,7 @@
 """
   Code for CSA module test commander
   
-  Copyright 2023 University of Cincinnati
+  Copyright 2023-2024 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
