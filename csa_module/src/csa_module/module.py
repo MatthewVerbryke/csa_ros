@@ -22,6 +22,7 @@ from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
 from csa_msgs.msg import Directive, Response
 from csa_msgs.response import create_response_msg
+from rosbridge_wrapper.ros_connect_wrapper import RosConnectWrapper as rC
 
 
 class CSAModule(object):
