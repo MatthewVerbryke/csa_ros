@@ -151,9 +151,10 @@ class ControlComponent(object):
             
         # Determine reaction to response
         if self.tactic.evals_resp:
-            mode = self.tactic.evaluate_response(response)
+            mode, params = self.tactic.evaluate_response(response)
         else:
             mode = response.status
+            params = None
         
         # Determine output reaction based on reaction
         if mode == "continue":
@@ -165,7 +166,8 @@ class ControlComponent(object):
             rerun = False
             rospy.loginfo("Directive %s execution succeded", self.directive.id)
             arb_response = self.get_response_to_arbitration(self.directive,
-                                                            "success", "")
+                                                            "success", "",
+                                                            params)
         elif mode == "failure":
             success = False
             rerun = False
