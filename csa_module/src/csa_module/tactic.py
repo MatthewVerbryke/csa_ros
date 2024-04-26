@@ -72,4 +72,4 @@ class Tactic(object):
         mode = "failure"
         rospy.logerr("No response evaluation function specified for tactic")
         
-        return mode
+        return mode, None
