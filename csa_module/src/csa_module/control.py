@@ -34,8 +34,7 @@ class ControlComponent(object):
           arbitration component
     """
     
-    def __init__(self, module_name, tactics_algorithm, rate, latency,
-                 tolerance, model):
+    def __init__(self, module_name, tactics_algorithm, rate, latency, model):
 
         # Initialize variables
         self.cur_id = -2

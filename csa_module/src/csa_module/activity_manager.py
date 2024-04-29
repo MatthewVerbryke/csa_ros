@@ -107,7 +107,7 @@ class ActivityManagerComponent(object):
         ctrl_response = None
         
         # Handle getting new directive while standing-by
-        if not self.executing and directive != None:
+        if not self.executing and directive is not None:
             self.store_new_directive(directive)
             am_outputs, ctrl_responses = self.run_am_algorithm()
             
@@ -115,7 +115,7 @@ class ActivityManagerComponent(object):
             self.executing = True
             
         # Handle getting new directive while executing
-        elif self.executing and directive != None:
+        elif self.executing and directive is not None:
             self.directive = None
             self.store_new_directive(directive)
             am_outputs, ctrl_responses = self.run_am_algorithm()

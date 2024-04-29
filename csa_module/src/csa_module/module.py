@@ -54,7 +54,6 @@ class CSAModule(object):
         self.rate = rospy.Rate(rate)
         max_directives = rospy.get_param("~max_dirs", 2)
         latency = rospy.get_param("~latency", 0.01)
-        tolerance = rospy.get_param("~tolerance", 0.1)
         prefix = rospy.get_param("~prefix", False)
         self.expect_resp = rospy.get_param("~expect_resp", True)
         

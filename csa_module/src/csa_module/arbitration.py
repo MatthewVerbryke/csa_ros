@@ -238,9 +238,10 @@ class ArbitrationComponent(object):
                 self.directives.pop(self.dir_key)
                 self.cur_directive = None
             
-            # Arbitrate over remaining directives or issue default
-            if len(self.directives) != 0:
+                # Arbitrate over remaining directives
                 self.hold_over = self.merge_directives()
+                
+            # Issue default directive
             else:
                 self.hold_over = self.issue_default_directive()
             
