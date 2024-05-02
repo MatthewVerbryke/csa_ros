@@ -192,7 +192,7 @@ class ArbitrationComponent(object):
         
         arb_directive = None
         cmdr_msg = None
-        
+
         # Process new directive
         if directive is not None:
             is_okay, msg = self.process_new_directive(directive)
@@ -234,14 +234,12 @@ class ArbitrationComponent(object):
                                                       response.params)
             
             # Cleanup the completed/failed directive
-            if len(self.directives) != 0:
-                self.directives.pop(self.dir_key)
-                self.cur_directive = None
+            self.directives.pop(self.dir_key)
+            self.cur_directive = None
             
-                # Arbitrate over remaining directives
+            # Arbitrate over remaining directives or issue default
+            if len(self.directives) != 0:
                 self.hold_over = self.merge_directives()
-                
-            # Issue default directive
             else:
                 self.hold_over = self.issue_default_directive()
             
