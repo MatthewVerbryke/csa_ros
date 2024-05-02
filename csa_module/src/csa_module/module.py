@@ -31,7 +31,7 @@ class CSAModule(object):
     """
     
     def __init__(self, name, arb_algorithm, tact_algorithm, am_algorithm,
-                 model, state_topic, pub_topics):
+                 model, state_topics, pub_topics):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -71,7 +71,7 @@ class CSAModule(object):
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
                                                 max_directives)
         self.control = ControlComponent(self.name, tact_algorithm, rate, 
-                                        latency, tolerance, self.model)
+                                        latency, self.model)
         self.activity_manager = ActivityManagerComponent(self.name,
                                                          am_algorithm)
         
@@ -81,13 +81,13 @@ class CSAModule(object):
         # Create empty subscribers callback holding variables
         self.command = None
         self.response = None
-        self.state = None
+        self.state = {}
         
         # Create initial flag variables
         self.got_first_state = False
         
         # Initialize communication objects
-        self.initialize_communications(state_topic, pub_topics)
+        self.initialize_communications(state_topics, pub_topics)
     
     def setup_model(self, model_obj, params):
         """
@@ -111,7 +111,7 @@ class CSAModule(object):
         # Signal Completion
         rospy.loginfo("System model configured")
     
-    def initialize_communications(self, state_topic, pub_topics):
+    def initialize_communications(self, state_topics, pub_topics):
         """
         Initialize the communication interfaces for the module.
         """
@@ -124,21 +124,15 @@ class CSAModule(object):
         self.commands_topic = self.name + "/command"
         self.responses_topic = self.name + "/response"
         
-        # Setup state information topic
-        for key,value in state_topic.items():
-            if value["use_prefix"]:
-                self.state_topic = self.subsystem + "/" + key
-            else:
-                self.state_topic = key
-            self.state_format = value["type"]
-        
-        # Initialize common subscriptions
+        # Initialize command and response subscriptions
         self.command_sub = rospy.Subscriber(self.commands_topic, Directive,
                                             self.command_callback)
         self.response_sub = rospy.Subscriber(self.responses_topic, Response,
                                              self.response_callback)
-        self.state_sub = rospy.Subscriber(self.state_topic, self.state_format,
-                                          self.state_callback)
+        
+        # Setup state subscription(s)
+        for key,value in state_topics.items():
+            self.setup_state_subscriber(key, value)
         
         # Setup all required command publishers for other modules
         for key,value in pub_topics.items():
@@ -147,12 +141,48 @@ class CSAModule(object):
         # Signal completion
         rospy.loginfo("Communication interfaces setup")
         
-    def setup_publisher(self, name, config):
+    def setup_state_subscriber(self, name, config):
         """
-        Setup individual publisher.
+        Setup an individual state subscriber.
+        
+        TODO: Test
         """
         
-        # Get basic parameters out of publisher
+        # State subscriber dicts
+        self.state_subscribers = {}
+        
+        # Get basic parameters of publisher
+        topic_type = config["type"]
+        prefix_option = bool(config["use_prefix"])
+        key = config["key"]
+        
+        # Handle prefixes for topic
+        if prefix_option:
+            if config["use_robot_ns"]:
+                prefix = self.robot + "/" + self.subsystem + "/"
+            else:
+                prefix = self.subsystem + "/"
+        else:
+            prefix = ""
+        
+        # Setup topic name
+        topic = prefix + name
+        
+        # Create subscriber
+        sub = rospy.Subscriber(name=topic, data_class=topic_type,
+                               callback=self.state_callback,
+                               callback_args=key)
+        
+        # Package into dictionary
+        self.state_subscribers.update({key: sub})
+        self.state.update({key: None})
+    
+    def setup_publisher(self, name, config):
+        """
+        Setup an individual publisher.
+        """
+        
+        # Get basic parameters of publisher
         topic_type = config["type"]
         destination = config["destination"]
         prefix_option = bool(config["use_prefix"])
@@ -175,7 +205,7 @@ class CSAModule(object):
         else:
             topic = prefix + name
         
-        # Create publishers using rospy ("local") or websockets
+        # Create publisher using rospy ("local") or websockets
         if destination == "local":
             pub = rospy.Publisher(topic, topic_type, queue_size=1)
             pub_type = "rospy"
@@ -259,14 +289,18 @@ class CSAModule(object):
         self.response = msg
         self.lock.release()
     
-    def state_callback(self, msg):
+    def state_callback(self, msg, args):
         """
-        Callback function for state messages from the state estimator.
+        Callback function for state messages to this module. Capable of
+        handling messages from multiple state topics simultaneously.
+        
+        TODO: Test
         """
         
-        # Store incoming state messages
+        # Catagorize and store incoming response message
         self.lock.acquire()
-        self.state = msg
+        key = args
+        self.state[key] = msg
         self.lock.release()
     
     def run_once(self):
