@@ -23,8 +23,6 @@ class PassThroughActivityManager(ActivityManagerAlgorithm):
     """
     A very simple activity manager algorithm which simply passes through
     directives to be published with no response expected.
-    
-    NOTE: Only to be used when sending one directive per destination.
     """
     
     def __init__(self):
