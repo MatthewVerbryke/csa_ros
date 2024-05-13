@@ -101,9 +101,9 @@ class CSAModule(object):
         else:
             model_obj.configure_model(params)
             
-            # Retrieve selected subsystem if needed
+            # Retrieve selected subsystem(s) if needed
             if self.subsystem != "":
-                sub_model = model_obj.get_subsystem(self.subsystem)
+                sub_model = model_obj.get_sub_model(self.subsystem)
                 self.model = sub_model
             else:
                 self.model = model_obj
@@ -143,15 +143,13 @@ class CSAModule(object):
         
     def setup_state_subscriber(self, name, config):
         """
-        Setup an individual state subscriber.
-        
-        TODO: Test
+        Setup an individual state subscriber
         """
         
-        # State subscriber dicts
+        # State subscriber dict
         self.state_subscribers = {}
         
-        # Get basic parameters of publisher
+        # Get basic parameters of subscriber
         topic_type = config["type"]
         prefix_option = bool(config["use_prefix"])
         key = config["key"]
@@ -294,7 +292,8 @@ class CSAModule(object):
         Callback function for state messages to this module. Capable of
         handling messages from multiple state topics simultaneously.
         
-        TODO: Test
+        See ROS Answers question #407730: 'ROS Subscribe to multiple
+        topics with single function'
         """
         
         # Catagorize and store incoming response message
