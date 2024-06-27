@@ -89,13 +89,13 @@ class ArbitrationComponent(object):
             self.directives.update({dir_key: directive})
             is_okay = True
             msg = ""
-            rospy.loginfo("Accepted directive {} from {}".format(directive.id,
-                directive.source))
+            rospy.loginfo("'{}': Accepted directive {} from {}".format(
+                self.module_name, directive.id, directive.source))
         
         # Log failures with reasoning
         if is_okay == False:
-            rospy.loginfo("Rejected directive {} from {}, reason: {}".format( 
-                directive.id, directive.source, msg))
+            rospy.logwarn("'{}': Rejected directive {} from {}, {}".format( 
+                self.module_name, directive.id, directive.source, msg))
         
         return is_okay, msg
         
@@ -149,7 +149,8 @@ class ArbitrationComponent(object):
         else:
             self.cur_directive = self.default_directive
             self.cur_id = -1
-            rospy.loginfo("Issuing default directive...")
+            rospy.loginfo("'{}': Issuing default directive...".format(
+                self.module_name))
         
             return self.default_directive
         
@@ -160,7 +161,7 @@ class ArbitrationComponent(object):
         """
         
         # Merge the directives to get an arbitrated directive
-        rospy.loginfo("Merging directives...")
+        rospy.loginfo("'{}': Merging directives...".format(self.module_name))
         arb_directive = self.merge_algorithm.run(self.cur_directive, 
                                                  self.directives)
         arb_key = arb_directive.source + "_" + str(arb_directive.id)
@@ -174,13 +175,14 @@ class ArbitrationComponent(object):
             self.cur_id = self.id_count
             self.id_count += 1
             arb_directive.id = self.cur_id
-            rospy.loginfo("Arbitration result: switching to directive %s",
-                self.cur_id)
+            rospy.loginfo("'{}': Arbitration switching to directive {}".format(
+                self.module_name, self.cur_id))
         
         # Otherwise continue
         else:
             arb_directive = None
-            rospy.loginfo("Arbitration result: continue")
+            rospy.loginfo("'{}': Arbitration continuing".format(
+                self.module_name))
         
         return arb_directive
     

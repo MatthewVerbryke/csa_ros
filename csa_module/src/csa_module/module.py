@@ -62,7 +62,7 @@ class CSAModule(object):
             self.name = self.subsystem + "/" + self.name
         
         # Signal initialization
-        rospy.loginfo("'%s' node initialized", self.name)
+        rospy.loginfo("'{}': Node initialized".format(self.name))
         
         # Setup system model
         self.setup_model(model, model_params)
@@ -76,7 +76,7 @@ class CSAModule(object):
                                                          am_algorithm)
         
         # Signal completion
-        rospy.loginfo("Module components initialized")
+        rospy.loginfo("'{}': Module components initialized".format(self.name))
         
         # Create empty subscribers callback holding variables
         self.command = None
@@ -97,7 +97,8 @@ class CSAModule(object):
         
         # Configure model using parameters
         if params == {}:
-            rospy.logerr("No model parameterization recieved")
+            rospy.logerr("'{}': No model parameterization recieved".format(
+                self.name))
         else:
             model_obj.configure_model(params)
             
@@ -109,7 +110,7 @@ class CSAModule(object):
                 self.model = model_obj
         
         # Signal Completion
-        rospy.loginfo("System model configured")
+        rospy.loginfo("'{}': System model configured".format(self.name))
     
     def initialize_communications(self, state_topics, pub_topics):
         """
@@ -139,11 +140,11 @@ class CSAModule(object):
             self.setup_publisher(key, value)
         
         # Signal completion
-        rospy.loginfo("Communication interfaces setup")
+        rospy.loginfo("'{}': Communication interfaces setup".format(self.name))
         
     def setup_state_subscriber(self, name, config):
         """
-        Setup an individual state subscriber
+        Setup an individual state subscriber.
         """
         
         # State subscriber dict
@@ -359,7 +360,7 @@ class CSAModule(object):
         """
         
         # Main loop
-        rospy.loginfo("'%s' node is running...", self.name)
+        rospy.loginfo("'{}': Node is running...".format(self.name))
         while not rospy.is_shutdown():
             self.run_once()
             self.rate.sleep()
@@ -394,4 +395,4 @@ class CSAModule(object):
         
         # Log shutdown of module
         rospy.sleep(1)
-        rospy.loginfo("Shutting down '%s' node", self.name)
+        rospy.loginfo("'{}': Node shutting down".format(self.name))
