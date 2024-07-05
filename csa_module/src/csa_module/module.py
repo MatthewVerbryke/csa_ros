@@ -153,14 +153,16 @@ class CSAModule(object):
         # Get basic parameters of subscriber
         topic_type = config["type"]
         prefix_option = bool(config["use_prefix"])
+        robot_ns_option = bool(config["use_robot_ns"])
         key = config["key"]
         
         # Handle prefixes for topic
-        if prefix_option:
-            if config["use_robot_ns"]:
-                prefix = self.robot + "/" + self.subsystem + "/"
-            else:
-                prefix = self.subsystem + "/"
+        if robot_ns_option and prefix_option:
+            prefix = self.robot + "/" + self.subsystem + "/"
+        elif robot_ns_option and not prefix_option:
+            prefix = self.robot + "/"
+        elif not robot_ns_option and prefix_option:
+            prefix = self.subsystem + "/"
         else:
             prefix = ""
         
@@ -185,14 +187,15 @@ class CSAModule(object):
         topic_type = config["type"]
         destination = config["destination"]
         prefix_option = bool(config["use_prefix"])
+        robot_ns_option = bool(config["use_robot_ns"])
         
         # Handle prefixes for topic
-        if prefix_option:
-            if config["use_robot_ns"]:
-                prefix = self.robot + "/" + self.subsystem + "/"
-            else:
-                prefix = self.subsystem + "/"
-            self.pub_adj.update({name: prefix + name})
+        if robot_ns_option and prefix_option:
+            prefix = self.robot + "/" + self.subsystem + "/"
+        elif robot_ns_option and not prefix_option:
+            prefix = self.robot + "/"
+        elif not robot_ns_option and prefix_option:
+            prefix = self.subsystem + "/"
         else:
             prefix = ""
         
