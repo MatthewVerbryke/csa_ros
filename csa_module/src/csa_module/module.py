@@ -224,7 +224,10 @@ class CSAModule(object):
             interface = None
         
         # Create key for storage
-        new_key = prefix + name
+        if prefix_option:
+            new_key = self.subsystem + "/" + name
+        else:
+            new_key = name
         
         # Package into dictionary
         pub_dict = {"type": pub_type,
