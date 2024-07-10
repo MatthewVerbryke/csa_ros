@@ -14,7 +14,7 @@
 from csa_module.activity_manager_algorithm import ActivityManagerAlgorithm
 from csa_msgs.directive import create_directive_msg
 from csa_msgs.msg import Directive, Response
-from csa_msgs.params import create_param_submsg
+from csa_msgs.params import create_param_submsg, convert_params_to_dict
 
 
 class DecomposedActivityManager(ActivityManagerAlgorithm):
@@ -31,7 +31,7 @@ class DecomposedActivityManager(ActivityManagerAlgorithm):
     TODO: Test
     """
     
-    def __init__(self, dests):
+    def __init__(self, dests, source):
         
         # Set response expectation parameter
         expect_resp = False
@@ -40,6 +40,7 @@ class DecomposedActivityManager(ActivityManagerAlgorithm):
         # Initialize id count variable
         self.id_count = -1
         self.dests = dests
+        self.source = source
         
     def process_response(self, response):
         """
@@ -65,31 +66,42 @@ class DecomposedActivityManager(ActivityManagerAlgorithm):
         # Store elements which won't be split
         name = directive.name
         description = directive.description
-        t_resp = directive.t_resp
+        t_resp = directive.response_time.to_sec()
         deadline = directive.params.deadline
         priority = directive.priority
-        
-        # convert parameters back to python types
-        full_entry_conds = ast.literal_eval(directive.params.entry_conds)
-        full_end_conds = ast.literal_eval(directive.params.end_conds)
-        full_criteria = ast.literal_eval(directive.params.criteria)
-        full_rules = ast.literal_eval(directive.params.rules)
+             
+        # Convert parameters back to python types
+        full_params = convert_params_to_dict(directive.params)
         
         # Get parameters
         for dest in self.dests:
-            entry_conds = full_entry_conds[dest]
-            end_conds = full_end_conds[dest]
-            criteria = full_criteria[dest]
-            rules = full_rules[dest]
+            if full_params["entry_conds"] != {}:
+                entry_conds = full_params["entry_conds"][dest]
+            else: 
+                entry_conds = {}
             
-            # create directive for this destination
+            if full_params["end_conds"] != {}:
+                end_conds = full_params["end_conds"][dest]
+            else:
+                entry_conds = {}
+            
+            if full_params["criteria"] != {}:
+                criteria = full_params["criteria"][dest]
+            else:
+                criteria = {}
+                
+            if full_params["rules"] != {}:
+                rules = full_params["rules"][dest]
+            else:
+                rules = {}
+            
+            # Create directive for this destination
             self.id_count += 1
             params = create_param_submsg(entry_conds, end_conds, criteria, rules,
                                          deadline)
             directive_out = create_directive_msg(self.id_count, name, 
-                                                 description, self.module_name,
-                                                 dest, t_resp, priority, params,
-                                                 "")
+                                                 description, self.source, dest,
+                                                 t_resp, priority, params, "")
                                                  
             # Give directive to output dict
             directives_out.update({directive_out.id: directive_out})
