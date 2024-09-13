@@ -31,7 +31,7 @@ class CSAModule(object):
     """
     
     def __init__(self, name, arb_algorithm, tact_algorithm, am_algorithm,
-                 model, state_topic, pub_topics):
+                 model, state_topics, pub_topics):
         
         # Get home directory
         self.home_dir = os.getcwd()
@@ -62,7 +62,7 @@ class CSAModule(object):
             self.name = self.subsystem + "/" + self.name
         
         # Signal initialization
-        rospy.loginfo("'%s' node initialized", self.name)
+        rospy.loginfo("'{}': Node initialized".format(self.name))
         
         # Setup system model
         self.setup_model(model, model_params)
@@ -71,23 +71,23 @@ class CSAModule(object):
         self.arbitration = ArbitrationComponent(self.name, arb_algorithm,
                                                 max_directives)
         self.control = ControlComponent(self.name, tact_algorithm, rate, 
-                                        latency, tolerance, self.model)
+                                        latency, self.model)
         self.activity_manager = ActivityManagerComponent(self.name,
                                                          am_algorithm)
         
         # Signal completion
-        rospy.loginfo("Module components initialized")
+        rospy.loginfo("'{}': Module components initialized".format(self.name))
         
         # Create empty subscribers callback holding variables
         self.command = None
         self.response = None
-        self.state = None
+        self.state = {}
         
         # Create initial flag variables
         self.got_first_state = False
         
         # Initialize communication objects
-        self.initialize_communications(state_topic, pub_topics)
+        self.initialize_communications(state_topics, pub_topics)
     
     def setup_model(self, model_obj, params):
         """
@@ -97,73 +97,105 @@ class CSAModule(object):
         
         # Configure model using parameters
         if params == {}:
-            rospy.logerr("No model parameterization recieved")
+            rospy.logerr("'{}': No model parameterization recieved".format(
+                self.name))
         else:
             model_obj.configure_model(params)
             
-            # Retrieve selected subsystem if needed
+            # Retrieve selected subsystem(s) if needed
             if self.subsystem != "":
-                sub_model = model_obj.get_subsystem(self.subsystem)
+                sub_model = model_obj.get_sub_model(self.subsystem)
                 self.model = sub_model
             else:
                 self.model = model_obj
         
         # Signal Completion
-        rospy.loginfo("System model configured")
+        rospy.loginfo("'{}': System model configured".format(self.name))
     
-    def initialize_communications(self, state_topic, pub_topics):
+    def initialize_communications(self, state_topics, pub_topics):
         """
         Initialize the communication interfaces for the module.
         """
         
         # Publisher storage dicts
         self.publishers = {}
-        self.pub_adj = {}
+        self.pub_alt = {}
         
         # Setup information for default subscriptions
         self.commands_topic = self.name + "/command"
         self.responses_topic = self.name + "/response"
         
-        # Setup state information topic
-        for key,value in state_topic.items():
-            if value["use_prefix"]:
-                self.state_topic = self.subsystem + "/" + key
-            else:
-                self.state_topic = key
-            self.state_format = value["type"]
-        
-        # Initialize common subscriptions
+        # Initialize command and response subscriptions
         self.command_sub = rospy.Subscriber(self.commands_topic, Directive,
                                             self.command_callback)
         self.response_sub = rospy.Subscriber(self.responses_topic, Response,
                                              self.response_callback)
-        self.state_sub = rospy.Subscriber(self.state_topic, self.state_format,
-                                          self.state_callback)
+        
+        # Setup state subscription(s)
+        for key,value in state_topics.items():
+            self.setup_state_subscriber(key, value)
         
         # Setup all required command publishers for other modules
         for key,value in pub_topics.items():
             self.setup_publisher(key, value)
         
         # Signal completion
-        rospy.loginfo("Communication interfaces setup")
+        rospy.loginfo("'{}': Communication interfaces setup".format(self.name))
         
+    def setup_state_subscriber(self, name, config):
+        """
+        Setup an individual state subscriber.
+        """
+        
+        # State subscriber dict
+        self.state_subscribers = {}
+        
+        # Get basic parameters of subscriber
+        topic_type = config["type"]
+        prefix_option = bool(config["use_prefix"])
+        robot_ns_option = bool(config["use_robot_ns"])
+        key = config["key"]
+        
+        # Handle prefixes for topic
+        if robot_ns_option and prefix_option:
+            prefix = self.robot + "/" + self.subsystem + "/"
+        elif robot_ns_option and not prefix_option:
+            prefix = self.robot + "/"
+        elif not robot_ns_option and prefix_option:
+            prefix = self.subsystem + "/"
+        else:
+            prefix = ""
+        
+        # Setup topic name
+        topic = prefix + name
+        
+        # Create subscriber
+        sub = rospy.Subscriber(name=topic, data_class=topic_type,
+                               callback=self.state_callback,
+                               callback_args=key)
+        
+        # Package into dictionary
+        self.state_subscribers.update({key: sub})
+        self.state.update({key: None})
+    
     def setup_publisher(self, name, config):
         """
-        Setup individual publisher.
+        Setup an individual publisher.
         """
         
-        # Get basic parameters out of publisher
+        # Get basic parameters of publisher
         topic_type = config["type"]
         destination = config["destination"]
         prefix_option = bool(config["use_prefix"])
+        robot_ns_option = bool(config["use_robot_ns"])
         
         # Handle prefixes for topic
-        if prefix_option:
-            if config["use_robot_ns"]:
-                prefix = self.robot + "/" + self.subsystem + "/"
-            else:
-                prefix = self.subsystem + "/"
-            self.pub_adj.update({name: prefix + name})
+        if robot_ns_option and prefix_option:
+            prefix = self.robot + "/" + self.subsystem + "/"
+        elif robot_ns_option and not prefix_option:
+            prefix = self.robot + "/"
+        elif not robot_ns_option and prefix_option:
+            prefix = self.subsystem + "/"
         else:
             prefix = ""
         
@@ -175,7 +207,7 @@ class CSAModule(object):
         else:
             topic = prefix + name
         
-        # Create publishers using rospy ("local") or websockets
+        # Create publisher using rospy ("local") or websockets
         if destination == "local":
             pub = rospy.Publisher(topic, topic_type, queue_size=1)
             pub_type = "rospy"
@@ -191,8 +223,10 @@ class CSAModule(object):
         else:
             interface = None
         
-        # Create key for storage
-        new_key = prefix + name
+        # Create full name store if needed
+        if prefix_option:
+            full_dest = self.subsystem + "/" + name
+            self.pub_alt.update({full_dest: name})
         
         # Package into dictionary
         pub_dict = {"type": pub_type,
@@ -200,7 +234,7 @@ class CSAModule(object):
                     "interface": interface}
         
         # Add sub-entry into main publishers dict
-        self.publishers.update({new_key: pub_dict})
+        self.publishers.update({name: pub_dict})
         
     def publish_message(self, msg):
         """
@@ -209,11 +243,12 @@ class CSAModule(object):
         """
         
         # Get appropriate publisher option
-        if msg.destination in self.pub_adj.keys():
-            pub_key = self.pub_adj[msg.destination]
-            msg.destination = pub_key
-        else:
+        if msg.destination in self.publishers.keys():
             pub_key = msg.destination
+        elif msg.destination in self.pub_alt.keys(): #FIXME?
+            pub_key = self.pub_alt[msg.destination]
+        else:
+            pass #TODO: Handle this 
         
         # Handle interface if needed
         if self.publishers[pub_key]["interface"] is not None:
@@ -259,14 +294,19 @@ class CSAModule(object):
         self.response = msg
         self.lock.release()
     
-    def state_callback(self, msg):
+    def state_callback(self, msg, args):
         """
-        Callback function for state messages from the state estimator.
+        Callback function for state messages to this module. Capable of
+        handling messages from multiple state topics simultaneously.
+        
+        See ROS Answers question #407730: 'ROS Subscribe to multiple
+        topics with single function'
         """
         
-        # Store incoming state messages
+        # Catagorize and store incoming response message
         self.lock.acquire()
-        self.state = msg
+        key = args
+        self.state[key] = msg
         self.lock.release()
     
     def run_once(self):
@@ -326,7 +366,7 @@ class CSAModule(object):
         """
         
         # Main loop
-        rospy.loginfo("'%s' node is running...", self.name)
+        rospy.loginfo("'{}': Node is running...".format(self.name))
         while not rospy.is_shutdown():
             self.run_once()
             self.rate.sleep()
@@ -361,4 +401,4 @@ class CSAModule(object):
         
         # Log shutdown of module
         rospy.sleep(1)
-        rospy.loginfo("Shutting down '%s' node", self.name)
+        rospy.loginfo("'{}': Node shutting down".format(self.name))
