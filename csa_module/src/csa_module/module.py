@@ -119,7 +119,7 @@ class CSAModule(object):
         
         # Publisher storage dicts
         self.publishers = {}
-        self.pub_adj = {}
+        self.pub_alt = {}
         
         # Setup information for default subscriptions
         self.commands_topic = self.name + "/command"
@@ -223,11 +223,10 @@ class CSAModule(object):
         else:
             interface = None
         
-        # Create key for storage
+        # Create full name store if needed
         if prefix_option:
-            new_key = self.subsystem + "/" + name
-        else:
-            new_key = name
+            full_dest = self.subsystem + "/" + name
+            self.pub_alt.update({full_dest: name})
         
         # Package into dictionary
         pub_dict = {"type": pub_type,
@@ -235,7 +234,7 @@ class CSAModule(object):
                     "interface": interface}
         
         # Add sub-entry into main publishers dict
-        self.publishers.update({new_key: pub_dict})
+        self.publishers.update({name: pub_dict})
         
     def publish_message(self, msg):
         """
@@ -244,11 +243,12 @@ class CSAModule(object):
         """
         
         # Get appropriate publisher option
-        if msg.destination in self.pub_adj.keys():
-            pub_key = self.pub_adj[msg.destination]
-            msg.destination = pub_key
-        else:
+        if msg.destination in self.publishers.keys():
             pub_key = msg.destination
+        elif msg.destination in self.pub_alt.keys(): #FIXME?
+            pub_key = self.pub_alt[msg.destination]
+        else:
+            pass #TODO: Handle this 
         
         # Handle interface if needed
         if self.publishers[pub_key]["interface"] is not None:
