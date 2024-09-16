@@ -11,8 +11,8 @@
 """
 
 
-from csa_msgs.directive import Directive
 from csa_common.directed_graph import DirectedGraph
+from csa_msgs.directive import Directive
 
 
 class ArbitrationAlgorithm(object):
@@ -25,6 +25,10 @@ class ArbitrationAlgorithm(object):
         # Store parameters
         self.allowed_dirs = allowed_dirs
         self.dir_graph = DirectedGraph(allowed_dirs, adjacencies)
+        
+        # Append inert tactic to allowed list
+        self.allowed_dirs.append("inert")
+        self.dir_graph.add_fully_connected_node("inert")
     
     def run(self, cur_directive, directives):
         """

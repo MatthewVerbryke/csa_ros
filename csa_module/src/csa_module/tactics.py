@@ -13,6 +13,9 @@
 
 import rospy
 
+from csa_common.inert import InertTactic
+from csa_msgs.msg import Parameters
+
 
 class TacticsComponent(object):
     """
@@ -43,7 +46,15 @@ class TacticsComponent(object):
         components and performing its function.
         """
         
+        # If commanded to go inert quickly get Inert tactic
+        if directive.name == "inert":
+            name = self.tactics_algorithm.module_name
+            params = {"rules": {"id":directive.id}}
+            tactic = InertTactic(name, params, model)
+            success = True
+        
         # Handle a new tactic request
-        success, tactic = self.tactics_algorithm.run(directive, state, model)
+        else:
+            success, tactic = self.tactics_algorithm.run(directive, state, model)
         
         return success, tactic #<-- TODO: change to send multiple tactics

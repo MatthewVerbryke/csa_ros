@@ -24,7 +24,30 @@ class DirectedGraph(object):
         # Store parameters
         self.nodes = nodes
         self.a_matrix = np.matrix(adjacencies)
-    
+        
+    def add_fully_connected_node(self, node):
+        """
+        Add a new node with fully connected to the other nodes, which
+        represents adding a new directive type which can be called when
+        starting while executing any other node.
+        
+        NOTE: make sure name of directive is added to end of allowed 
+              directive list.
+        """
+        
+        # Append node name to nodes list
+        self.nodes.append(node)
+        
+        # Create new adjacency matrix one size bigger on each axis
+        a_shape = self.a_matrix.shape
+        new_a_matrix = np.ones((a_shape[0]+1, a_shape[1]+1), dtype=int)
+        
+        # Put old adjacency matrix in upper left of new matrix
+        new_a_matrix[0:a_shape[0], 0:a_shape[0]] = self.a_matrix
+        
+        # Store the new matrix
+        self.a_matrix = new_a_matrix
+        
     def check_adjacency(self, start, end):
         """
         Return whether or not the selected nodes have a connecting edge.
