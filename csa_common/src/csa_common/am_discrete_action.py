@@ -24,23 +24,28 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
     execute.
     """
     
-    def __init__(self, act_list):
+    def __init__(self, act_list, dest_names):
         
         # Set response expectation parameter
         expect_resp = True
         super().__init__(expect_resp)
         
         # Initialize other parameters and variables
+        self.dest_names = dest_names
         self.act_dict = {}
         self.allowed_names = []
         self.req_responses = {}
         self.id_count = -1
         
-        # Store actions in dictionary and names in allowed list
+        # Create and store 'inert' activity
+        self.act_dict.update("inert": list(self.dest_names.values()))
+        self.allowed_names.append("inert")
+        
+        # Store other actions in dictionary and allowed list
         for act in act_list:
             self.act_dict.update({act.name: act})
             self.allowed_names.append(act.name)
-        
+    
     def process_response(self, response):
         """
         Evaluate a response message to current output directives and 
@@ -68,7 +73,7 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
             mode = "failure"
         
         return mode, params
-        
+    
     def execute_activity(self, directive):
         """
         Given a control directive, check the requested activity and, if
