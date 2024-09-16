@@ -260,11 +260,14 @@ class CSAModule(object):
             if msg_to_pub.source == "":
                 msg_to_pub.source = self.name
             
-        # Publish message over correct protocol
-        if self.publishers[pub_key]["type"] == "rospy":
-            self.publishers[pub_key]["publisher"].publish(msg_to_pub)
-        elif self.publishers[pub_key]["type"] == "ws4py":
-            self.publishers[pub_key]["publisher"].send(msg_to_pub)
+        # Publish message over correct protocol (if message exists)
+        if msg_to_pub == None:
+            pass
+        else:
+            if self.publishers[pub_key]["type"] == "rospy":
+                self.publishers[pub_key]["publisher"].publish(msg_to_pub)
+            elif self.publishers[pub_key]["type"] == "ws4py":
+                self.publishers[pub_key]["publisher"].send(msg_to_pub)
         
     def publish_multiple_messages(self, msgs):
         """

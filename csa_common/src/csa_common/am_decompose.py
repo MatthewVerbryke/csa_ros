@@ -83,7 +83,7 @@ class DecomposedActivityManager(ActivityManagerAlgorithm):
             if full_params["end_conds"] != {}:
                 end_conds = full_params["end_conds"][dest]
             else:
-                entry_conds = {}
+                end_conds = {}
             
             if full_params["criteria"] != {}:
                 criteria = full_params["criteria"][dest]

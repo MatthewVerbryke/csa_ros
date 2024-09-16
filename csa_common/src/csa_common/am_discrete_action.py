@@ -14,6 +14,7 @@
 import copy
 
 from csa_common.activity import Activity
+from csa_common.inert import InertActivity
 from csa_module.activity_manager_algorithm import ActivityManagerAlgorithm
 from csa_msgs.params import convert_params_to_dict
 
@@ -38,7 +39,8 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         self.id_count = -1
         
         # Create and store 'inert' activity
-        self.act_dict.update("inert": list(self.dest_names.values()))
+        dests = list(self.dest_names.values())
+        self.act_dict.update({"inert": InertActivity(dests)})
         self.allowed_names.append("inert")
         
         # Store other actions in dictionary and allowed list
