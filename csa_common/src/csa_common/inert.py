@@ -13,6 +13,7 @@
 
 import rospy
 
+from csa_common.activity import Activity
 from csa_module.tactic import Tactic
 from csa_msgs.directive import create_directive_msg
 from csa_msgs.params import create_param_submsg, convert_params_to_dict
