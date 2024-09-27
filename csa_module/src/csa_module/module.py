@@ -243,23 +243,33 @@ class CSAModule(object):
         """
         
         # Get appropriate publisher option
-        if msg.destination in self.publishers.keys():
-            pub_key = msg.destination
-        elif msg.destination in self.pub_alt.keys(): #FIXME?
-            pub_key = self.pub_alt[msg.destination]
-        else:
-            pass #TODO: Handle this 
+        if msg.destination != "":
+            if msg.destination in self.publishers.keys():
+                pub_key = msg.destination
+            elif msg.destination in self.pub_alt.keys(): #FIXME?
+                pub_key = self.pub_alt[msg.destination]
+            else:
+                msg = "Directive {} destination not recognized".format(msg.id)
+                rospy.logwarn("{}: {}".format(self.name, msg))
         
-        # Handle interface if needed
-        if self.publishers[pub_key]["interface"] is not None:
-            msg_to_pub = self.publishers[pub_key]["interface"].convert(msg)
+            # Handle interface if needed
+            if self.publishers[pub_key]["interface"] is not None:
+                msg_to_pub = self.publishers[pub_key]["interface"].convert(msg)
+            else:
+                msg_to_pub = msg
+                
+                # Give this module name if necessary
+                if msg_to_pub.source == "":
+                    msg_to_pub.source = self.name
+        
+        # If no destination given, set 'msg_to_pub' as None
+        # TODO: somewhat hacky, fix?
         else:
-            msg_to_pub = msg
-            
-            # Give this module name if necessary
-            if msg_to_pub.source == "":
-                msg_to_pub.source = self.name
-            
+            msg_to_pub = None
+            if msg.name != "inert":
+                msg = "No destination given for directive {}".format(msg.id)
+                rospy.logwarn("{}: {}".format(self.name, msg))
+        
         # Publish message over correct protocol (if message exists)
         if msg_to_pub == None:
             pass
