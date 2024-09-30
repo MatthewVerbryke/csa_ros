@@ -62,13 +62,9 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         if response.status == "accept":
             mode = "continue"
         
-        # else if successful determine if continue or finish
+        # If successful determine if continue or finish
         elif response.status == "success":
-            finished = self.activity.check_response(response)
-            if finished:
-                mode = "success"
-            else:
-                mode = "continue"
+            mode = self.activity.check_response(response)
         
         # Otherwise fail up to control
         else:
