@@ -25,8 +25,6 @@ class InertTactic(Tactic):
     
     NOTE: different from 'Stop' tactics, which order system to stop at 
     current position.
-    
-    TODO: Test
     """
     
     def __init__(self, module_name, params, model):
@@ -53,8 +51,6 @@ class InertActivity(Activity):
     """
     An Activity object for rendering all commanded modules inert; should
     be included by default in each new 'DiscreteActivityManager'
-    
-    TODO: Test
     """
     
     def __init__(self, dest_names):

@@ -14,6 +14,7 @@
 import rospy
 
 from csa_common.inert import InertTactic
+from csa_common.standby import StandbyTactic
 from csa_msgs.msg import Parameters
 
 
@@ -46,8 +47,15 @@ class TacticsComponent(object):
         components and performing its function.
         """
         
-        # If commanded to go inert quickly get Inert tactic
-        if directive.name == "inert":
+        # If module is standing by, quickly get Standby tactic
+        if directive.name == "standby":
+            name = self.tactics_algorithm.module_name
+            params = {"rules": {"id":directive.id}}
+            tactic = StandbyTactic(name, params, model)
+            success = True
+        
+        # If commanded to go inert, quickly get Inert tactic
+        elif directive.name == "inert":
             name = self.tactics_algorithm.module_name
             params = {"rules": {"id":directive.id}}
             tactic = InertTactic(name, params, model)

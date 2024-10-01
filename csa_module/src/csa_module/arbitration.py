@@ -31,21 +31,30 @@ class ArbitrationComponent(object):
         - Report status back to commanding module
     """
     
-    def __init__(self, module_name, merge_algorithm, max_directives):
+    def __init__(self, module_name, merge_algorithm, max_directives, 
+                 default_params=None):
         
         # Store Parameters
         self.module_name = module_name
         self.merge_algorithm = merge_algorithm
         self.max = max_directives
         
-        # Setup default directive
-        default_name = merge_algorithm.allowed_dirs[0]
+        # Fill out common details of default directive
         self.default_directive = Directive()
-        self.default_directive.name = default_name
         self.default_directive.source = "self"
         self.default_directive.id = -1
-        self.default_directive.response_time = 1
-        self.default_directive.priority = 1
+        self.default_directive.response_time = 1.0
+        self.default_directive.priority = -1 # FIXME?
+        
+        # Add specific default directive parameters
+        if default_params is not None:
+            self.default_directive.name = default_params["name"]
+            self.default_directive.params = default_params["params"]
+        else:
+            self.default_directive.name = "standby"
+            
+            # Add standby tactic to allowed directives list
+            self.merge_algorithm.allowed_dirs.append("standby")
         
         # Initialize other parameters
         self.cur_directive = None
@@ -149,7 +158,7 @@ class ArbitrationComponent(object):
         else:
             self.cur_directive = self.default_directive
             self.cur_id = -1
-            rospy.loginfo("'{}': Issuing default directive...".format(
+            rospy.loginfo("'{}': Issuing default directive ...".format(
                 self.module_name))
         
             return self.default_directive
