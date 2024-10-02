@@ -11,6 +11,9 @@
 """
 
 
+import rospy
+
+
 class Activity(object):
     """
     Base class object for activities. Intended for use with the
@@ -22,7 +25,7 @@ class Activity(object):
         self.name = name
         self.dests = dests
         self.source = ""
-        
+    
     def get_outputs(self, params):
         """
         Given parameters for the activity, return a directive or set of
@@ -32,13 +35,11 @@ class Activity(object):
         acts_out = []
         
         return acts_out
-        
+    
     def check_response(self, response):
         """
         Check a response to an output directive to determine if the
         activity is finished or should continue to execute.
         """
         
-        finished = False
-        
-        return finished
+        return "failure"
