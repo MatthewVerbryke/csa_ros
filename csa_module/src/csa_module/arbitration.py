@@ -66,7 +66,7 @@ class ArbitrationComponent(object):
         
         # Initialize other variables
         self.cur_id = -1
-        self.dir_key = -1
+        self.dir_key = ""
         self.id_count = 1
        
     def process_new_directive(self, directive):
@@ -177,8 +177,16 @@ class ArbitrationComponent(object):
         
         # Switch directive if not same currently executing
         if arb_key != self.dir_key:
+            #TODO: FIX THIS ============================================
+            try:
+                if self.dir_key != "":
+                    self.directives.pop(self.dir_key)# TODO: Support replace vs switch
+            except:
+                pass
+            #===========================================================
             self.dir_key = arb_key
             self.cur_directive = arb_directive
+
             
             # Update id with internal number
             self.cur_id = self.id_count
@@ -186,7 +194,17 @@ class ArbitrationComponent(object):
             arb_directive.id = self.cur_id
             rospy.loginfo("'{}': Arbitration switching to directive {}".format(
                 self.module_name, self.cur_id))
-        
+            
+            # Remove unused inert directives to prevent build-up
+            # TODO: Determine better approach to this
+            dirs_to_pop = []
+            for key,value in self.directives.items():
+                if value.name == "inert":
+                    if value.id != self.cur_directive.id:
+                        dirs_to_pop.append(key)
+            for dir_key in dirs_to_pop:
+                self.directives.pop(dir_key)
+            
         # Otherwise continue
         else:
             arb_directive = None
