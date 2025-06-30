@@ -3,7 +3,7 @@
 """
   CSA module activity manager component source code.
   
-  Copyright 2021-2024 University of Cincinnati
+  Copyright 2021-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/gazebo_terrain
   Additional copyright may be held by others, as reflected in the commit
@@ -13,8 +13,10 @@
 
 import rospy
 
+from csa_common.am_pass_through import PassThroughActivityManager
 from csa_msgs.msg import Directive, Response
 from csa_msgs.response import create_response_msg
+
 
 
 class ActivityManagerComponent(object):
@@ -83,6 +85,8 @@ class ActivityManagerComponent(object):
         
         # If successful, prepare response to control component
         elif mode == "success":
+            rospy.loginfo("'{}': Activity {} successful ".format(
+                    self.name, self.cur_id))
             response_msg = create_response_msg(self.cur_id, "", "", mode, "",
                                                params, "")
             self.directive = None
@@ -92,6 +96,8 @@ class ActivityManagerComponent(object):
         elif mode == "failure":
             response_msg = create_response_msg(self.cur_id, "", "", mode,
                                                response.reject_msg, params, "")
+            rospy.loginfo("'{}': Activity {} failed ".format(
+                    self.name, self.cur_id))
             self.directive = None
             #TODO: issue safe directive?
         
@@ -113,13 +119,13 @@ class ActivityManagerComponent(object):
             
             # Set 'executing' tag
             self.executing = True
-            
+        
         # Handle getting new directive while executing
         elif self.executing and directive is not None:
             self.directive = None
             self.store_new_directive(directive)
             am_outputs, ctrl_responses = self.run_am_algorithm()
-            
+
         # Handle new response on current control directive
         elif response is not None:
             ctrl_response = self.process_new_response(response)
@@ -129,3 +135,15 @@ class ActivityManagerComponent(object):
             pass
         
         return am_outputs, ctrl_response
+    
+    def reset(self):
+        """
+        Reset the component, including removal of all directives/
+        activities and setting all variables to their original values.
+        """
+        
+        self.directive = None
+        self.cur_directives = {}
+        self.executing = False
+        self.cur_id = -1
+        self.id_count = 0

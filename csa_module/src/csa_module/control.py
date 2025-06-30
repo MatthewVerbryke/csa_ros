@@ -3,7 +3,7 @@
 """
   CSA module control component source code.
   
-  Copyright 2021-2024 University of Cincinnati
+  Copyright 2021-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -279,3 +279,14 @@ class ControlComponent(object):
                 pass
         
         return ctrl_directive, arb_response
+    
+    def reset(self):
+        """
+        Reset the component, including removal of all directives and
+        setting all variables to their original values.
+        """
+        
+        self.cur_id = -2
+        self.directive = None
+        self.tactic = None
+        self.executing = False

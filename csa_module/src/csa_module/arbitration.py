@@ -3,7 +3,7 @@
 """
   CSA module arbitration component source code.
   
-  Copyright 2021-2023 University of Cincinnati
+  Copyright 2021-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -66,7 +66,7 @@ class ArbitrationComponent(object):
         
         # Initialize other variables
         self.cur_id = -1
-        self.dir_key = -1
+        self.dir_key = ""
         self.id_count = 1
        
     def process_new_directive(self, directive):
@@ -177,8 +177,16 @@ class ArbitrationComponent(object):
         
         # Switch directive if not same currently executing
         if arb_key != self.dir_key:
+            #TODO: FIX THIS ============================================
+            try:
+                if self.dir_key != "":
+                    self.directives.pop(self.dir_key)# TODO: Support replace vs switch
+            except:
+                pass
+            #===========================================================
             self.dir_key = arb_key
             self.cur_directive = arb_directive
+
             
             # Update id with internal number
             self.cur_id = self.id_count
@@ -186,7 +194,17 @@ class ArbitrationComponent(object):
             arb_directive.id = self.cur_id
             rospy.loginfo("'{}': Arbitration switching to directive {}".format(
                 self.module_name, self.cur_id))
-        
+            
+            # Remove unused inert directives to prevent build-up
+            # TODO: Determine better approach to this
+            dirs_to_pop = []
+            for key,value in self.directives.items():
+                if value.name == "inert":
+                    if value.id != self.cur_directive.id:
+                        dirs_to_pop.append(key)
+            for dir_key in dirs_to_pop:
+                self.directives.pop(dir_key)
+            
         # Otherwise continue
         else:
             arb_directive = None
@@ -262,3 +280,25 @@ class ArbitrationComponent(object):
                 pass
         
         return arb_directive, cmdr_msg
+    
+    def flush(self):
+        """
+        Flush all stored directives, but keep the currently executing
+        directive.
+        """
+        
+        self.directives = {}
+    
+    def reset(self):
+        """
+        Reset the component, including removal of all directive running
+        or stored, and setting all variables to their original values.
+        """
+        
+        self.cur_directive = None
+        self.standby = True
+        self.directives = {}
+        self.hold_over = None
+        self.cur_id = -1
+        self.dir_key = ""
+        self.id_count = 1

@@ -3,7 +3,7 @@
 """
   CSA module main module source code.
   
-  Copyright 2022-2024 University of Cincinnati
+  Copyright 2022-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -16,6 +16,7 @@ import sys
 import threading
 
 import rospy
+from std_msgs.msg import String
 
 from csa_module.activity_manager import ActivityManagerComponent
 from csa_module.arbitration import ArbitrationComponent
@@ -81,6 +82,7 @@ class CSAModule(object):
         # Create empty subscribers callback holding variables
         self.command = None
         self.response = None
+        self.meta_command = None
         self.state = {}
         
         # Create initial flag variables
@@ -124,12 +126,15 @@ class CSAModule(object):
         # Setup information for default subscriptions
         self.commands_topic = self.name + "/command"
         self.responses_topic = self.name + "/response"
+        self.meta_command_topic = self.name + "/meta_command"
         
-        # Initialize command and response subscriptions
+        # Initialize command, response, and meta-command subscriptions
         self.command_sub = rospy.Subscriber(self.commands_topic, Directive,
                                             self.command_callback)
         self.response_sub = rospy.Subscriber(self.responses_topic, Response,
                                              self.response_callback)
+        self.meta_command_sub = rospy.Subscriber(self.meta_command_topic, String,
+                                                 self.meta_command_callback)
         
         # Setup state subscription(s)
         for key,value in state_topics.items():
@@ -292,7 +297,6 @@ class CSAModule(object):
         Callback function for directive/command messages to this module.
         """
         
-        # Store incoming command messages
         self.lock.acquire()
         self.command = msg
         self.lock.release()
@@ -302,9 +306,17 @@ class CSAModule(object):
         Callback function for response messages to this module.
         """
         
-        # Store incoming response messages
         self.lock.acquire()
         self.response = msg
+        self.lock.release()
+    
+    def meta_command_callback(self, msg):
+        """
+        Callback function for meta-command messages to this module.
+        """
+        
+        self.lock.acquire()
+        self.meta_command = msg
         self.lock.release()
     
     def state_callback(self, msg, args):
@@ -316,7 +328,6 @@ class CSAModule(object):
         topics with single function'
         """
         
-        # Catagorize and store incoming response message
         self.lock.acquire()
         key = args
         self.state[key] = msg
@@ -326,6 +337,10 @@ class CSAModule(object):
         """
         Run the components of the module in the proper order once.
         """
+        
+        #
+        if self.meta_command is not None:
+            self.handle_meta_command()
         
         # Check if we have new directive/command
         arb_output = self.arbitration.run(self.command, None)
@@ -372,6 +387,7 @@ class CSAModule(object):
         # Purge command and response callbacks for next loop
         self.command = None
         self.response = None
+        self.meta_command = None
         
     def run(self):
         """
@@ -383,6 +399,26 @@ class CSAModule(object):
         while not rospy.is_shutdown():
             self.run_once()
             self.rate.sleep()
+            
+    def handle_meta_command(self):
+        """
+        Execute 'meta-commands' provided from the architecture operator.
+        
+        TODO: Test
+        """
+        
+        # Flush stored directives in arbitration
+        if self.meta_command == "flush":
+            self.arbitration.flush()
+        
+        # Reset the modules internal state
+        elif self.meta_command == "reset":
+            self.arbitration.reset()
+            self.control.reset()
+            self.activity_manager.reset()
+        
+        # TODO: Add more meta commands as necessary here
+        #elif self.meta_command == ...:
         
     def check_for_completion(self):
         """
