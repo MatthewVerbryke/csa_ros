@@ -68,6 +68,7 @@ class ArbitrationComponent(object):
         self.cur_id = -1
         self.dir_key = ""
         self.id_count = 1
+        self.ignore = False
        
     def process_new_directive(self, directive):
         """
@@ -78,7 +79,8 @@ class ArbitrationComponent(object):
         dir_key = directive.source + "_" + str(directive.id)
         if dir_key in self.directives.keys():
             is_okay = True
-            msg = "ignore"
+            self.ignore = True
+            msg = ""
         
         # Reject new directives over the capacity limit
         elif len(self.directives) == self.max:
@@ -87,7 +89,6 @@ class ArbitrationComponent(object):
         
         # Check if the directive action is in the allowed list
         elif directive.name not in self.merge_algorithm.allowed_dirs:
-            print(self.merge_algorithm.allowed_dirs)
             is_okay = False
             msg = "Directive action '{}' not allowed".format(directive.name)
         
@@ -97,16 +98,18 @@ class ArbitrationComponent(object):
         else:
             self.directives.update({dir_key: directive})
             is_okay = True
-            msg = ""
-            rospy.loginfo("'{}': Accepted directive {} from {}".format(
-                self.module_name, directive.id, directive.source))
+            rospy.logdebug("Accepted directive {} from {}".format(
+                directive.id, directive.source))
         
         # Log failures with reasoning
         if is_okay == False:
             rospy.logwarn("'{}': Rejected directive {} from {}, {}".format( 
                 self.module_name, directive.id, directive.source, msg))
+            msg_action = "reject"
+        else:
+            msg_action = "accept"
         
-        return is_okay, msg
+        return is_okay, msg_action, msg
         
     def process_new_response(self, response):
         """
@@ -130,7 +133,7 @@ class ArbitrationComponent(object):
         """
         
         # Don't make a message if we are told to ignore
-        if msg == "ignore":
+        if self.ignore:
             response_msg = None
         
         # Create a response message    
@@ -158,8 +161,8 @@ class ArbitrationComponent(object):
         else:
             self.cur_directive = self.default_directive
             self.cur_id = -1
-            rospy.loginfo("'{}': Issuing default directive ...".format(
-                self.module_name))
+            #rospy.loginfo("'{}': Issuing default directive ...".format(
+            #    self.module_name))
         
             return self.default_directive
         
@@ -167,49 +170,37 @@ class ArbitrationComponent(object):
         """
         Merge the directives stored in the module to get an arbitrated
         directive to send to control.
+        
+        TODO: Test changes
         """
         
         # Merge the directives to get an arbitrated directive
-        rospy.loginfo("'{}': Merging directives...".format(self.module_name))
+        rospy.logdebug("Merging directives")
         arb_directive = self.merge_algorithm.run(self.cur_directive, 
                                                  self.directives)
         arb_key = arb_directive.source + "_" + str(arb_directive.id)
         
-        # Switch directive if not same currently executing
+        # If output key is different, switch to new directive 
         if arb_key != self.dir_key:
-            #TODO: FIX THIS ============================================
-            try:
-                if self.dir_key != "":
-                    self.directives.pop(self.dir_key)# TODO: Support replace vs switch
-            except:
-                pass
-            #===========================================================
+            replace = self.cur_directive is not None
             self.dir_key = arb_key
             self.cur_directive = arb_directive
-
             
-            # Update id with internal number
+            # Clear stored directives if replacing current directives
+            if replace:
+                self.directives = {self.dir_key: self.cur_directive})
+            
+            # Update arbitrated directive id number from internal count
             self.cur_id = self.id_count
             self.id_count += 1
             arb_directive.id = self.cur_id
-            rospy.loginfo("'{}': Arbitration switching to directive {}".format(
-                self.module_name, self.cur_id))
-            
-            # Remove unused inert directives to prevent build-up
-            # TODO: Determine better approach to this
-            dirs_to_pop = []
-            for key,value in self.directives.items():
-                if value.name == "inert":
-                    if value.id != self.cur_directive.id:
-                        dirs_to_pop.append(key)
-            for dir_key in dirs_to_pop:
-                self.directives.pop(dir_key)
-            
-        # Otherwise continue
+            rospy.logdebug("Arbitration result: switch to directive {}".format(
+                    self.cur_id))
+        
+        # Otherwise continue with current directive 
         else:
             arb_directive = None
-            rospy.loginfo("'{}': Arbitration continuing".format(
-                self.module_name))
+            rospy.logdebug("Arbitration result: continue")
         
         return arb_directive
     
@@ -224,26 +215,28 @@ class ArbitrationComponent(object):
 
         # Process new directive
         if directive is not None:
-            is_okay, msg = self.process_new_directive(directive)
+            is_okay, msg_action, msg = self.process_new_directive(directive)
             
             # Get response to commanding module(s)
-            if is_okay:
-                msg_type = "accept"
-            else:
-                msg_type = "reject"
-            cmdr_msg = self.get_response_to_commander(directive, msg_type,
+            cmdr_msg = self.get_response_to_commander(directive, msg_action,
                                                       msg, None)
             
             # Arbitrate over directives
             if is_okay:
-                if msg != "ignore":
+                if not self.ignore:
                     arb_directive = self.merge_directives()
                     self.standby = False
                     
                     # Delete hold-over if it exists
+                    #TODO: Eliminate
                     self.hold_over = None
+                
+                # Reset ignore tag
+                else:
+                    self.ignore = False
         
         # Handle "held over" directves if we didn't get new one
+        # TODO: Eliminate
         elif self.hold_over is not None:
             arb_directive = self.hold_over
             self.standby = False
@@ -251,15 +244,11 @@ class ArbitrationComponent(object):
         
         # Process new response
         elif response is not None:
-            success, msg = self.process_new_response(response)
+            success, msg_action, msg = self.process_new_response(response)
             
             # Get response to commanding module(s)
-            if success:
-                msg_type = "success"
-            else:
-                msg_type = "failure"
             cmdr_msg = self.get_response_to_commander(self.cur_directive,
-                                                      msg_type, msg,
+                                                      msg_action, msg,
                                                       response.params)
             
             # Cleanup the completed/failed directive
