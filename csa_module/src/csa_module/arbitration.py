@@ -98,13 +98,14 @@ class ArbitrationComponent(object):
         else:
             self.directives.update({dir_key: directive})
             is_okay = True
-            rospy.logdebug("Accepted directive {} from {}".format(
-                directive.id, directive.source))
+            rospy.logdebug("Accepted directive {} '{}' from {}".format(
+                directive.id, directive.name, directive.source))
         
         # Log failures with reasoning
         if is_okay == False:
-            rospy.logwarn("'{}': Rejected directive {} from {}, {}".format( 
-                self.module_name, directive.id, directive.source, msg))
+            rospy.logwarn("{} rejected directive {} '{}' from {}; {}".format( 
+                self.module_name, directive.id, directive.name, directive.source,
+                msg))
             msg_action = "reject"
         else:
             msg_action = "accept"
@@ -161,8 +162,7 @@ class ArbitrationComponent(object):
         else:
             self.cur_directive = self.default_directive
             self.cur_id = -1
-            #rospy.loginfo("'{}': Issuing default directive ...".format(
-            #    self.module_name))
+            rospy.logdebug("Issuing default directive")
         
             return self.default_directive
         
@@ -185,22 +185,25 @@ class ArbitrationComponent(object):
             replace = self.cur_directive is not None
             self.dir_key = arb_key
             self.cur_directive = arb_directive
+            replace_msg = ""
             
             # Clear stored directives if replacing current directives
             if replace:
                 self.directives = {self.dir_key: self.cur_directive})
+                replace_msg = ", replacing current directives"
             
             # Update arbitrated directive id number from internal count
             self.cur_id = self.id_count
             self.id_count += 1
             arb_directive.id = self.cur_id
-            rospy.logdebug("Arbitration result: switch to directive {}".format(
-                    self.cur_id))
+            rospy.logdebug("Switching to directive {} '{}'{}".format(
+                self.cur_id, self.cur_directive.name, replace_msg))
         
         # Otherwise continue with current directive 
         else:
             arb_directive = None
-            rospy.logdebug("Arbitration result: continue")
+            rospy.logdebug("Continuing with directive {} '{}'".format(
+                self.cur_id, self.cur_directive.name))
         
         return arb_directive
     
@@ -244,7 +247,7 @@ class ArbitrationComponent(object):
         
         # Process new response
         elif response is not None:
-            success, msg_action, msg = self.process_new_response(response)
+            success, msg = self.process_new_response(response)
             
             # Get response to commanding module(s)
             cmdr_msg = self.get_response_to_commander(self.cur_directive,

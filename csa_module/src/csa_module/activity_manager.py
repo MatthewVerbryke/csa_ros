@@ -27,7 +27,7 @@ class ActivityManagerComponent(object):
     def __init__(self, module_name, am_algorithm):
         
         # Store parameters
-        self.name = module_name
+        self.module_name = module_name
         self.am_algorithm = am_algorithm
         self.expect_resp = am_algorithm.expect_resp
         
@@ -58,6 +58,7 @@ class ActivityManagerComponent(object):
         response = None
         
         # Run activity manager algorithm
+        rospy.logdebug("Running activity manager")
         output = self.am_algorithm.execute_activity(self.directive)
         directives_out = output[0]
         success = output[1]
@@ -68,6 +69,13 @@ class ActivityManagerComponent(object):
             directives_out = None
             response = create_response_msg(self.cur_id, "", "", "failure",
                                            msg, None, "")
+            rospy.logwarn("{} failed to get activities: {}".format(
+                self.module_name, msg))
+        else:
+            act_msg = ""
+            for act in directives_out:
+                act_msg += "{}: {},".format(act.destination, act.name)
+            rospy.logdebug("Executing activities {}".format(act_msg)
         
         return directives_out, response
         
@@ -85,10 +93,10 @@ class ActivityManagerComponent(object):
         
         # If successful, prepare response to control component
         elif mode == "success":
-            rospy.loginfo("'{}': Activity {} successful ".format(
-                    self.name, self.cur_id))
             response_msg = create_response_msg(self.cur_id, "", "", mode, "",
                                                params, "")
+            rospy.logdebug("Activities for directive {} succeeded".format(
+                 self.cur_id))
             self.directive = None
             self.executing = False
             
@@ -96,8 +104,8 @@ class ActivityManagerComponent(object):
         elif mode == "failure":
             response_msg = create_response_msg(self.cur_id, "", "", mode,
                                                response.reject_msg, params, "")
-            rospy.loginfo("'{}': Activity {} failed ".format(
-                    self.name, self.cur_id))
+            rospy.logdebug("Activities for directive {} failed: {}".format(
+                 self.cur_id, response.reject_msg))
             self.directive = None
             #TODO: issue safe directive?
         
