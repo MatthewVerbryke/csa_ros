@@ -35,6 +35,7 @@ class Tactic(object):
         # Store parameters
         self.module_name = module_name
         self.model = model
+        self.name = ""
         self.cur_id = int(self.params["rules"]["id"])
         
         # Initialize variables
