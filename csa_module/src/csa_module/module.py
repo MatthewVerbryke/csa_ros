@@ -23,6 +23,7 @@ from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
 from csa_msgs.msg import Directive, Response
 from csa_msgs.response import create_response_msg
+from csa_msgs.status import create_status_msg
 from rosbridge_wrapper.ros_connect_wrapper import RosConnectWrapper as rC
 
 
@@ -112,7 +113,7 @@ class CSAModule(object):
                 self.model = model_obj
         
         # Signal Completion
-        rospy.loginfo("'{}': System model configured".format(self.name))
+        rospy.logdebug("'{}': System model configured".format(self.name))
     
     def initialize_communications(self, state_topics, pub_topics):
         """
@@ -127,6 +128,7 @@ class CSAModule(object):
         self.commands_topic = self.name + "/command"
         self.responses_topic = self.name + "/response"
         self.meta_command_topic = self.name + "/meta_command"
+        self.status_topic = self.name + "/status"
         
         # Initialize command, response, and meta-command subscriptions
         self.command_sub = rospy.Subscriber(self.commands_topic, Directive,
@@ -140,12 +142,17 @@ class CSAModule(object):
         for key,value in state_topics.items():
             self.setup_state_subscriber(key, value)
         
+        # Setup module status publisher
+        # TODO: Add rosbridge option?
+        self.status_pub = rospy.Publisher(self.status_topic, DiagnosticArray,
+                                          queue_size=1)
+        
         # Setup all required command publishers for other modules
         for key,value in pub_topics.items():
             self.setup_publisher(key, value)
         
         # Signal completion
-        rospy.loginfo("'{}': Communication interfaces setup".format(self.name))
+        rospy.logdebug("'{}': Communication interfaces setup".format(self.name))
         
     def setup_state_subscriber(self, name, config):
         """
@@ -291,7 +298,33 @@ class CSAModule(object):
         
         for key,value in msgs.items():
             self.publish_message(value)
-    
+            
+    def publish_status_message(self, start_t, end_t):
+        """
+        Publish a module status message for monitoring the modules
+        status.
+        
+        TODO: Improve upon basic implementation
+        TODO: Test
+        """
+        
+        # Package relavant module status variables
+        values = {"start time": start_t,
+                  "end time": end_t,
+                  "directive": self.arbitration.cur_id,
+                  "tactic": self.control.tactic.name,
+                  "activities": list(self.activity_manager.cur_directives.keys()),
+        }
+        
+        # Create status message
+        # TODO: add consideration of failure level and reasoning
+        msg = create_status_msg(0, "", self.name, self.arbitration.cur_id,
+                                values)
+                                
+        # Publish message
+        # TODO: add option for rosbridge publishing?
+        self.status_pub.publish(msg)
+        
     def command_callback(self, msg):
         """
         Callback function for directive/command messages to this module.
@@ -338,7 +371,9 @@ class CSAModule(object):
         Run the components of the module in the proper order once.
         """
         
-        #
+        start_t = rospy.Time.now()
+        
+        # Handle any meta-command received
         if self.meta_command is not None:
             self.handle_meta_command()
         
@@ -383,6 +418,10 @@ class CSAModule(object):
             arb_output = self.arbitration.run(None, ctrl_response)
             arb_response = arb_output[1]
             self.publish_message(arb_response)
+        
+        # Publish status message
+        end_t = rospy.Time.now()
+        self.publish_status_message(start_t, end_t)
         
         # Purge command and response callbacks for next loop
         self.command = None

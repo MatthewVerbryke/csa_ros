@@ -74,8 +74,10 @@ class ActivityManagerComponent(object):
         else:
             act_msg = ""
             for act in directives_out:
+                self.cur_directive.update({act.destination: act})
                 act_msg += "{}: {},".format(act.destination, act.name)
-            rospy.logdebug("Executing activities {}".format(act_msg)
+                
+            rospy.logdebug("Executing activities {}".format(act_msg))
         
         return directives_out, response
         
@@ -89,6 +91,7 @@ class ActivityManagerComponent(object):
         
         # If still waiting on other responses, continue without response
         if mode == "continue":
+            self.cur_directives.pop(response.source)
             response_msg = None
         
         # If successful, prepare response to control component
@@ -98,6 +101,7 @@ class ActivityManagerComponent(object):
             rospy.logdebug("Activities for directive {} succeeded".format(
                  self.cur_id))
             self.directive = None
+            self.cur_directives = {}
             self.executing = False
             
         # Otherwise get info out of response message
