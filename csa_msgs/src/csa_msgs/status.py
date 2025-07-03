@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 """
-  
+  Functions for working with a CSA module status messages (actually of
+  "DiagnosticStatus"-type) sub-message.
   
   Copyright 2021-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:

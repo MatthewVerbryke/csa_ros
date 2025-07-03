@@ -76,7 +76,6 @@ class ActivityManagerComponent(object):
             for act in directives_out:
                 self.cur_directive.update({act.destination: act})
                 act_msg += "{}: {},".format(act.destination, act.name)
-                
             rospy.logdebug("Executing activities {}".format(act_msg))
         
         return directives_out, response
