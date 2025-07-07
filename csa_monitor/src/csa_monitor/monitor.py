@@ -22,6 +22,8 @@ import rospy
 class CSAMonitor(object):
     """
     A architecture wide CSA-module monitor object.
+    
+    TODO: Test
     """
     
     def __init__(self):
@@ -91,6 +93,21 @@ class CSAMonitor(object):
         self.status[key] = msg
         self.lock.release()
         
+    def publish_status_array(self):
+        """
+        Convert status dictionary into a DiagnosticArray type message
+        and publish it.
+        """
+        
+        # Construct DiagnosticArray message from status info
+        status_msg = DiagnosticArray()
+        status_msg.header.stamp = rospy.Time.now()
+        for key,value in self.status.items():
+            status_msg.status.append(value)
+            
+        # Publish status
+        self.publisher.publish(status_msg)
+        
     def run(self):
         """
         Keep looping through the module while rospy is running.
@@ -101,7 +118,7 @@ class CSAMonitor(object):
         # Main loop
         rospy.loginfo("CSA monitor node is running...".format(self.name))
         while not rospy.is_shutdown():
-            self.publisher.publish(self.status)
+            self.publish_status_array
             self.rate.sleep()
     
     def cleanup(self):
