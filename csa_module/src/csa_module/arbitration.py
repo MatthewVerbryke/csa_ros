@@ -92,6 +92,12 @@ class ArbitrationComponent(object):
             is_okay = False
             msg = "Directive action '{}' not allowed".format(directive.name)
         
+        # Reject directive if it somehow got sent to wrong destination
+        elif directive.destination != self.module_name:
+            is_okay = False
+            msg = "Directive destination '{}' is not this module".format(
+                directive.destination)
+            
         # TODO: Add more basic checks here
         
         # Store the new directive
