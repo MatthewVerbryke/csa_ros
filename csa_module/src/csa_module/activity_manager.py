@@ -18,7 +18,6 @@ from csa_msgs.msg import Directive, Response
 from csa_msgs.response import create_response_msg
 
 
-
 class ActivityManagerComponent(object):
     """
     A generic activity manager (am) component object for a CSA module.
@@ -35,6 +34,7 @@ class ActivityManagerComponent(object):
         self.directive = None
         self.cur_directives = {}
         self.executing = False
+        self.deadline = None
         self.cur_id = -1
         self.id_count = 0
     
@@ -48,7 +48,13 @@ class ActivityManagerComponent(object):
         
         # Store directive 
         self.directive = directive
-
+        
+        # Store deadline (if exists)
+        if directive.deadline == rospy.Time(0.0):
+            self.deadline = None
+        else:
+            self.deadline = directive.deadline
+        
     def run_am_algorithm(self):
         """
         Run the main activity manager algorithm, and determine if it was
@@ -74,7 +80,7 @@ class ActivityManagerComponent(object):
             act_msg = ""
             for act in directives_out:
                 self.cur_directive.update({act.destination: act})
-                act_msg += "{} -> {},".format(act.destination, act.name)
+                act_msg += "{} -> {},".format(act.name, act.destination)
             rospy.logdebug("Executing activities {}".format(act_msg))
         
         return directives_out, response
@@ -101,6 +107,7 @@ class ActivityManagerComponent(object):
             self.directive = None
             self.cur_directives = {}
             self.executing = False
+            self.deadline = None
             
         # Otherwise get info out of response message
         elif mode == "failure":
@@ -110,6 +117,50 @@ class ActivityManagerComponent(object):
                  self.cur_id, response.reject_msg))
             self.directive = None
             #TODO: issue safe directive?
+        
+        return mode, response_msg
+    
+    def check_deadline(self, resp_mode=None):
+        """
+        Determine if current directive has run past its deadline, and if
+        so, construct a failure response to control.
+        
+        TODO: Test
+        """
+        
+        response_msg = None
+        
+        # Ignore check if no deadline is provided
+        if self.deadline == None:
+            past_deadline = False
+        
+        # Check if deadline has passed or not
+        else:
+            cur_time = rospy.Time.now()
+            if self.deadline < cur_time:
+                past_deadline = True
+            elif self.deadline > cur_time:
+                past_deadline = False
+                
+            # Unlikely but possible check for being at deadline
+            elif self.deadline == cur_time:
+                if resp_mode == "success" or resp_mode == "failure":
+                    past_deadline = False # just handle stuff at control
+                else:
+                    past_deadline = True
+                    
+        # Handle various things if deadline has passed
+        if past_deadline:
+            fail_msg = "Deadline ({}) reached".format(self.deadline.to_secs())
+            response_msg = create_response_msg(self.cur_id, "", "", "failure",
+                                               reject_msg, None, "")
+            rospy.logwarn("'{}' reached deadline ({}) for directive {}".format(
+                self.module_name, self.deadline.to_secs(), self.cur_id))
+            self.directive = None
+            self.executing = False
+            self.deadline = None
+            
+        #TODO: more actions w.r.t. commanded modules?
         
         return response_msg
     
@@ -128,7 +179,8 @@ class ActivityManagerComponent(object):
             am_outputs, ctrl_responses = self.run_am_algorithm()
             
             # Set 'executing' tag
-            self.executing = True
+            if am_outputs is not None:
+                self.executing = True
         
         # Handle getting new directive while executing
         elif self.executing and directive is not None:
@@ -137,9 +189,14 @@ class ActivityManagerComponent(object):
             am_outputs, ctrl_responses = self.run_am_algorithm()
 
         # Handle new response on current control directive
-        elif response is not None:
-            ctrl_response = self.process_new_response(response)
+        elif self.executing and response is not None:
+            mode, ctrl_response = self.process_new_response(response)
+            ctrl_response = self.check_deadline(mode)
             
+        # Check directive deadline
+        elif self.executing:
+            ctrl_response = self.check_deadline()
+        
         # Otherwise do nothing 
         else:
             pass
@@ -155,5 +212,6 @@ class ActivityManagerComponent(object):
         self.directive = None
         self.cur_directives = {}
         self.executing = False
+        self.deadline = None
         self.cur_id = -1
         self.id_count = 0
