@@ -9,6 +9,7 @@ project(csa_monitor)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   csa_msgs
+  diagnostic_msgs
   rospy
   std_msgs
 )
@@ -105,7 +106,7 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES csa_monitor
-  CATKIN_DEPENDS csa_msgs rospy std_msgs
+  CATKIN_DEPENDS csa_msgs diagnostic_msgs rospy std_msgs
 #  DEPENDS system_lib
 )
 

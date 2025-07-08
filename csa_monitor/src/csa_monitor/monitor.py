@@ -53,7 +53,7 @@ class CSAMonitor(object):
         self.status = {}
         
         # Setup overall publisher
-        self.publisher = rospy.Publisher("rse_status", DiagnosticArray,
+        self.publisher = rospy.Publisher("csa_status", DiagnosticArray,
                                          queue_size=1)
         
         # Initialize subscribers objects
@@ -116,7 +116,7 @@ class CSAMonitor(object):
         """
         
         # Main loop
-        rospy.loginfo("CSA monitor node is running...".format(self.name))
+        rospy.loginfo("CSA monitor node is running...")
         while not rospy.is_shutdown():
             self.publish_status_array
             self.rate.sleep()

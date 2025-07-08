@@ -100,7 +100,7 @@ class CSATimelinePlotter(object):
             start_t = []
             mode = []
             for msg in value:
-                start_t.append(msg.values["start_time"])
+                start_t.append(float(msg.values["start_time"]))
                 mode.append(msg.values[data_type])
                 
                 # Keep list of mode names
