@@ -28,12 +28,12 @@ def create_status_msg(level, fail_msg, module_name, cur_id, module_stats):
     msg = DiagnosticStatus()
     
     # Build message from inputs
-    msg.status.level = level
-    msg.status.name = module_name
-    msg.status.message = fail_msg
-    msg.status.hardware_id = id_num #NOTE: actually storing directive id
+    msg.level = level
+    msg.name = module_name
+    msg.message = fail_msg
+    msg.hardware_id = id_num #NOTE: actually storing directive id
     
     # Handle key value list for other stats
-    msg.status.values = dict_to_key_value_list(module_stats)
+    msg.values = dict_to_key_value_list(module_stats)
     
     return msg
