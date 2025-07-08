@@ -103,7 +103,7 @@ class ArbitrationComponent(object):
         
         # Log failures with reasoning
         if is_okay == False:
-            rospy.logwarn("{} rejected directive {} '{}' from {}; {}".format( 
+            rospy.logwarn("'{}' rejected directive {} '{}' from {}: {}".format( 
                 self.module_name, directive.id, directive.name, directive.source,
                 msg))
             msg_action = "reject"

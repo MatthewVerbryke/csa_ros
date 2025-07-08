@@ -66,8 +66,9 @@ class ControlComponent(object):
         # Get tactic from the tactics component
         rospy.logdebug("Requesting tactic for direcitve {}".format(
             self.module_name, directive.id, directive.name))
-        success, tactic = self.tactics_component.run(directive, state,
-                                                     self.model)
+        output = self.tactics_component.run(directive, state, self.model)
+        success = output[0]
+        tactic = output[1]
         
         # If successful, store tactic and new directive
         if success:
@@ -82,8 +83,7 @@ class ControlComponent(object):
                                                         msg)
             self.directive = None
             self.tactic = None
-            rospy.logwarn("{} failed to find tactic".format(self.module_name,
-                                                            msg))
+            rospy.logwarn("'{}' failed to find tactic".format(self.module_name))
         
         return success, response
         
@@ -132,7 +132,7 @@ class ControlComponent(object):
             self.executing = False
             
             # Log failure to terminal/file
-            rospy.logwarn("{} failed to get control directive".format(
+            rospy.logwarn("'{}' failed to get control directive".format(
                 self.module_name))
         
         return ctrl_directive, arb_response

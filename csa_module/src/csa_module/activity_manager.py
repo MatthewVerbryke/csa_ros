@@ -62,20 +62,19 @@ class ActivityManagerComponent(object):
         output = self.am_algorithm.execute_activity(self.directive)
         directives_out = output[0]
         success = output[1]
-        msg = output[2]
         
         # If failed to find directive, get failure response
         if not success:
             directives_out = None
             response = create_response_msg(self.cur_id, "", "", "failure",
                                            msg, None, "")
-            rospy.logwarn("{} failed to get activities: {}".format(
-                self.module_name, msg))
+            rospy.logwarn("'{}' failed to find activities".format(
+                self.module_name))
         else:
             act_msg = ""
             for act in directives_out:
                 self.cur_directive.update({act.destination: act})
-                act_msg += "{}: {},".format(act.destination, act.name)
+                act_msg += "{} -> {},".format(act.destination, act.name)
             rospy.logdebug("Executing activities {}".format(act_msg))
         
         return directives_out, response

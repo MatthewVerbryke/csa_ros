@@ -64,7 +64,7 @@ class CSAModule(object):
             self.name = self.subsystem + "/" + self.name
         
         # Signal initialization
-        rospy.loginfo("'{}': Node initialized".format(self.name))
+        rospy.loginfo("'{}' node initialized".format(self.name))
         
         # Setup system model
         self.setup_model(model, model_params)
@@ -78,7 +78,7 @@ class CSAModule(object):
                                                          am_algorithm)
         
         # Signal completion
-        rospy.loginfo("'{}': Module components initialized".format(self.name))
+        rospy.logdebug("Module components initialized")
         
         # Create empty subscribers callback holding variables
         self.command = None
@@ -91,7 +91,7 @@ class CSAModule(object):
         
         # Initialize communication objects
         self.initialize_communications(state_topics, pub_topics)
-    
+        
     def setup_model(self, model_obj, params):
         """
         Setup the model given to this node as an argument with parameters
@@ -100,8 +100,7 @@ class CSAModule(object):
         
         # Configure model using parameters
         if params == {}:
-            rospy.logerr("'{}': No model parameterization recieved".format(
-                self.name))
+            rospy.logerr("'{}' has no model parameterization".format(self.name))
         else:
             model_obj.configure_model(params)
             
@@ -113,7 +112,7 @@ class CSAModule(object):
                 self.model = model_obj
         
         # Signal Completion
-        rospy.logdebug("'{}': System model configured".format(self.name))
+        rospy.logdebug("System model configured")
     
     def initialize_communications(self, state_topics, pub_topics):
         """
@@ -139,6 +138,7 @@ class CSAModule(object):
                                                  self.meta_command_callback)
         
         # Setup state subscription(s)
+        self.state_subscribers = {}
         for key,value in state_topics.items():
             self.setup_state_subscriber(key, value)
         
@@ -152,15 +152,12 @@ class CSAModule(object):
             self.setup_publisher(key, value)
         
         # Signal completion
-        rospy.logdebug("'{}': Communication interfaces setup".format(self.name))
+        rospy.logdebug("Communication interfaces setup")
         
     def setup_state_subscriber(self, name, config):
         """
         Setup an individual state subscriber.
         """
-        
-        # State subscriber dict
-        self.state_subscribers = {}
         
         # Get basic parameters of subscriber
         topic_type = config["type"]
@@ -262,7 +259,7 @@ class CSAModule(object):
                 pub_key = self.pub_alt[msg.destination]
             else:
                 msg = "Directive {} destination not recognized".format(msg.id)
-                rospy.logwarn("{}: {}".format(self.name, msg))
+                rospy.logwarn("{} for '{}'".format(msg, self.name))
         
             # Handle interface if needed
             if self.publishers[pub_key]["interface"] is not None:
@@ -280,7 +277,7 @@ class CSAModule(object):
             msg_to_pub = None
             if msg.name != "inert":
                 msg = "No destination given for directive {}".format(msg.id)
-                rospy.logwarn("{}: {}".format(self.name, msg))
+                rospy.logwarn("{} in '{}'".format(msg, self.name))
         
         # Publish message over correct protocol (if message exists)
         if msg_to_pub == None:
@@ -311,7 +308,7 @@ class CSAModule(object):
         # Package relavant module status variables
         values = {"start time": start_t,
                   "end time": end_t,
-                  "directive": self.arbitration.cur_id,
+                  "directive": self.arbitration.cur_dir,
                   "tactic": self.control.tactic.name,
                   "activities": list(self.activity_manager.cur_directives.keys()),
         }
@@ -421,7 +418,7 @@ class CSAModule(object):
         
         # Publish status message
         end_t = rospy.Time.now()
-        self.publish_status_message(start_t, end_t)
+        self.publish_status_message(start_t.to_sec(), end_t.to_sec())
         
         # Purge command and response callbacks for next loop
         self.command = None
@@ -434,7 +431,7 @@ class CSAModule(object):
         """
         
         # Main loop
-        rospy.loginfo("'{}': Node is running...".format(self.name))
+        rospy.loginfo("'{}' node is running...".format(self.name))
         while not rospy.is_shutdown():
             self.run_once()
             self.rate.sleep()
@@ -458,7 +455,7 @@ class CSAModule(object):
         
         # TODO: Add more meta commands as necessary here
         #elif self.meta_command == ...:
-        
+    
     def check_for_completion(self):
         """
         Handling function for tactics when module is not recieving
@@ -489,4 +486,4 @@ class CSAModule(object):
         
         # Log shutdown of module
         rospy.sleep(1)
-        rospy.loginfo("'{}': Node shutting down".format(self.name))
+        rospy.loginfo("'{}' node is shutting down".format(self.name))
