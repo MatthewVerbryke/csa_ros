@@ -383,38 +383,58 @@ class CSAModule(object):
         if arb_response is not None:
             self.publish_message(arb_response)
         
+        # If no new directives, run activity manager
+        if arb_directive is None:
+            am_output = self.activity_manager.run(None, self.response)
+            am_directives = am_output[0]
+            am_responses = am_output[1]
+            
+            # Respond to commanded modules (if necessary)
+            if am_directives is not None:
+                self.publish_multiple_message(am_directives)
+        
         # Check for completion when not expecting external responses
         if not self.expect_resp and self.control.tactic is not None:
             self.check_for_completion()
         
-        # Check for new response(s)
-        am_output = self.activity_manager.run(None, self.response)
-        am_directives = am_output[0]
-        am_responses = am_output[1]
-        
-        # Respond to commanded modules (if necessary)
-        if am_directives is not None:
-            self.publish_multiple_message(am_directives)
-        
-        # Run Control
-        ctrl_output = self.control.run(arb_directive, am_responses, self.state)
-        ctrl_directive = ctrl_output[0]
-        ctrl_response = ctrl_output[1]
-        
-        # Run activity manager
-        am_output = self.activity_manager.run(ctrl_directive, None)
-        am_directives = am_output[0]
-        am_response = am_output[1]
-        
-        # Issue command(s)
-        if am_directives is not None:
-            self.publish_multiple_messages(am_directives)
-        
-        # Respond to commanding module if necessary
-        if ctrl_response is not None:
-            arb_output = self.arbitration.run(None, ctrl_response)
-            arb_response = arb_output[1]
-            self.publish_message(arb_response)
+        # Control loop
+        finished = False
+        while not finished:
+            
+            # Run Control
+            ctrl_output = self.control.run(arb_directive, am_responses, self.state)
+            ctrl_directive = ctrl_output[0]
+            ctrl_response = ctrl_output[1]
+            
+            # Handle new control directive output
+            if ctrl_directive is not None:
+                am_output = self.activity_manager.run(None, self.response)
+                am_directives = am_output[0]
+                am_responses = am_output[1]
+                
+                # Issue commands to modules
+                if am_directives is not None:
+                    self.publish_multiple_message(am_directives)
+                    finished = True
+                
+                # Finish if no new responses either
+                elif am_responses is None:
+                    finished = True
+            
+            # Handle new control response
+            elif ctrl_response is not None:
+                arb_output = self.arbitration.run(None, ctrl_response)
+                arb_directive = arb_output[0]
+                arb_response = arb_output[1]
+                
+                # Response to comanding module (if necessary)
+                if arb_response is not None:
+                    self.publish_message(arb_response)
+                    finished = True
+            
+            # Otherwise finish current loop
+            else:
+                finished = True
         
         # Publish status message
         end_t = rospy.Time.now()
