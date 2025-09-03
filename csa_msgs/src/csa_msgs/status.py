@@ -15,7 +15,7 @@
 import rospy
 
 from diagnostic_msgs.msg import DiagnosticStatus
-from key_value import dict_to_key_value_list
+from csa_msgs.key_value import dict_to_key_value_list
 
 
 def create_status_msg(level, fail_msg, module_name, cur_id, module_stats):
@@ -31,7 +31,7 @@ def create_status_msg(level, fail_msg, module_name, cur_id, module_stats):
     msg.level = level
     msg.name = module_name
     msg.message = fail_msg
-    msg.hardware_id = id_num #NOTE: actually storing directive id
+    msg.hardware_id = cur_id #NOTE: actually storing directive id
     
     # Handle key value list for other stats
     msg.values = dict_to_key_value_list(module_stats)

@@ -15,6 +15,7 @@ import os
 import sys
 import threading
 
+from diagnostic_msgs.msg import DiagnosticStatus, DiagnosticArray
 import rospy
 from std_msgs.msg import String
 
@@ -144,7 +145,7 @@ class CSAModule(object):
         
         # Setup module status publisher
         # TODO: Add rosbridge option?
-        self.status_pub = rospy.Publisher(self.status_topic, DiagnosticArray,
+        self.status_pub = rospy.Publisher(self.status_topic, DiagnosticStatus,
                                           queue_size=1)
         
         # Setup all required command publishers for other modules
@@ -308,7 +309,7 @@ class CSAModule(object):
         # Package relavant module status variables
         values = {"start time": start_t,
                   "end time": end_t,
-                  "directive": self.arbitration.cur_dir,
+                  "directive": self.arbitration.cur_directive,
                   "tactic": self.control.tactic.name,
                   "activities": list(self.activity_manager.cur_directives.keys()),
         }
@@ -392,6 +393,11 @@ class CSAModule(object):
             # Respond to commanded modules (if necessary)
             if am_directives is not None:
                 self.publish_multiple_message(am_directives)
+        
+        # If new directive from arbitration preempt activity manager
+        else:
+            am_directive = None
+            am_responses = None
         
         # Check for completion when not expecting external responses
         if not self.expect_resp and self.control.tactic is not None:

@@ -195,7 +195,7 @@ class ArbitrationComponent(object):
             
             # Clear stored directives if replacing current directives
             if replace:
-                self.directives = {self.dir_key: self.cur_directive})
+                self.directives = {self.dir_key: self.cur_directive}
                 replace_msg = ", replacing current directives"
             
             # Update arbitrated directive id number from internal count

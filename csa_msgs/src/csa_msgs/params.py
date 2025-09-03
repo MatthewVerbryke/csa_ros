@@ -20,7 +20,7 @@
 import rospy
 
 from csa_msgs.msg import Parameters
-from key_value import key_value_list_to_dict, dict_to_key_value_list
+from csa_msgs.key_value import key_value_list_to_dict, dict_to_key_value_list
 
 
 def create_param_submsg(entry_conds, end_conds, criteria, rules, deadline):
