@@ -29,7 +29,7 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         
         # Set response expectation parameter
         expect_resp = True
-        super().__init__(expect_resp)
+        super().__init__(expect_resp, True)
         
         # Initialize other parameters and variables
         self.dest_names = dest_names
@@ -47,6 +47,21 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         for act in act_list:
             self.act_dict.update({act.name: act})
             self.allowed_names.append(act.name)
+    
+    def adjust_dest_names(self, prefix):
+       
+        # Correct destination names list
+        for key,value in self.dest_names.items():
+            new_name = prefix + "/" + value
+            self.dest_names[key] = new_name
+        
+        # Correct desitnations within activities
+        for key,value in self.act_dict.items():
+            for i in range(0,len(value.dests)):
+                new_name = prefix + "/" + value.dests[i]
+                value.dests[i] = new_name
+    
+        print(self.dest_names)
     
     def process_response(self, response):
         """

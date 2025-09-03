@@ -23,12 +23,16 @@ class ActivityManagerComponent(object):
     A generic activity manager (am) component object for a CSA module.
     """
     
-    def __init__(self, module_name, am_algorithm):
+    def __init__(self, module_name, am_algorithm, prefix):
         
         # Store parameters
         self.module_name = module_name
         self.am_algorithm = am_algorithm
         self.expect_resp = am_algorithm.expect_resp
+        
+        # Adjust destination names if subsystem prefix exists
+        if prefix != "" and self.am_algorithm.dest_prefix:
+            self.am_algorithm.adjust_dest_names(prefix)
         
         # Initialize variables
         self.directive = None
@@ -50,10 +54,10 @@ class ActivityManagerComponent(object):
         self.directive = directive
         
         # Store deadline (if exists)
-        if directive.deadline == rospy.Time(0.0):
+        if directive.params.deadline == rospy.Time(0.0):
             self.deadline = None
         else:
-            self.deadline = directive.deadline
+            self.deadline = directive.params.deadline
         
     def run_am_algorithm(self):
         """
@@ -78,9 +82,9 @@ class ActivityManagerComponent(object):
                 self.module_name))
         else:
             act_msg = ""
-            for act in directives_out:
-                self.cur_directive.update({act.destination: act})
-                act_msg += "{} -> {},".format(act.name, act.destination)
+            for key,value in directives_out.items():
+                self.cur_directives.update({value.destination: value})
+                act_msg += "{} -> {},".format(value.name, value.destination)
             rospy.logdebug("Executing activities {}".format(act_msg))
         
         return directives_out, response
@@ -151,11 +155,11 @@ class ActivityManagerComponent(object):
                     
         # Handle various things if deadline has passed
         if past_deadline:
-            fail_msg = "Deadline ({}) reached".format(self.deadline.to_secs())
+            reject_msg = "Deadline ({}) reached".format(self.deadline.to_sec())
             response_msg = create_response_msg(self.cur_id, "", "", "failure",
                                                reject_msg, None, "")
             rospy.logwarn("'{}' reached deadline ({}) for directive {}".format(
-                self.module_name, self.deadline.to_secs(), self.cur_id))
+                self.module_name, self.deadline.to_sec(), self.cur_id))
             self.directive = None
             self.executing = False
             self.deadline = None
@@ -200,6 +204,13 @@ class ActivityManagerComponent(object):
         # Otherwise do nothing 
         else:
             pass
+        
+        # # Adjust output destinations with subsystem name (if exists)
+        # if am_outputs is not None:
+            # if self.prefix != "":
+                # for key in am_outputs.keys():
+                    # new_dest = self.prefix + "/" + am_outputs[key].destination
+                    # am_outputs[key].destination = new_dest
         
         return am_outputs, ctrl_response
     
