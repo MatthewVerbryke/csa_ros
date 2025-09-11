@@ -31,7 +31,7 @@ class ActivityManagerComponent(object):
         self.expect_resp = am_algorithm.expect_resp
         
         # Adjust destination names if subsystem prefix exists
-        if prefix != "" and self.am_algorithm.dest_prefix:
+        if self.am_algorithm.use_prefix:
             self.am_algorithm.adjust_dest_names(prefix)
         
         # Initialize variables
@@ -57,7 +57,7 @@ class ActivityManagerComponent(object):
         if directive.params.deadline == rospy.Time(0.0):
             self.deadline = None
         else:
-            self.deadline = directive.params.deadline
+            self.deadline = self.directive.params.deadline
         
     def run_am_algorithm(self):
         """
@@ -152,14 +152,18 @@ class ActivityManagerComponent(object):
                     past_deadline = False # just handle stuff at control
                 else:
                     past_deadline = True
-                    
+        
         # Handle various things if deadline has passed
         if past_deadline:
             reject_msg = "Deadline ({}) reached".format(self.deadline.to_sec())
             response_msg = create_response_msg(self.cur_id, "", "", "failure",
                                                reject_msg, None, "")
-            rospy.logwarn("'{}' reached deadline ({}) for directive {}".format(
-                self.module_name, self.deadline.to_sec(), self.cur_id))
+            rospy.logwarn("'{}' reached deadline {} for directive {} '{}'".format(
+                self.module_name,
+                self.deadline.to_sec(),
+                self.cur_id,
+                self.directive.name
+            ))
             self.directive = None
             self.executing = False
             self.deadline = None
@@ -195,7 +199,6 @@ class ActivityManagerComponent(object):
         # Handle new response on current control directive
         elif self.executing and response is not None:
             mode, ctrl_response = self.process_new_response(response)
-            ctrl_response = self.check_deadline(mode)
             
         # Check directive deadline
         elif self.executing:
@@ -204,14 +207,7 @@ class ActivityManagerComponent(object):
         # Otherwise do nothing 
         else:
             pass
-        
-        # # Adjust output destinations with subsystem name (if exists)
-        # if am_outputs is not None:
-            # if self.prefix != "":
-                # for key in am_outputs.keys():
-                    # new_dest = self.prefix + "/" + am_outputs[key].destination
-                    # am_outputs[key].destination = new_dest
-        
+
         return am_outputs, ctrl_response
     
     def reset(self):

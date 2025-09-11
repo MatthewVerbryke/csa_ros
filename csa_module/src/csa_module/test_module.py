@@ -31,7 +31,7 @@ class ModuleTestCommander(object):
                  dir_inputs):
         
         # Initialize rospy node
-        rospy.init_node("module_commander")
+        rospy.init_node("module_commander", anonymous=True)
         
         # Setup cleanup function
         rospy.on_shutdown(self.cleanup)
@@ -103,6 +103,7 @@ class ModuleTestCommander(object):
                 self.got_accept = True
             else:
                 print("heard rejection message")
+                print(self.response)
         else:
             pass
         
@@ -125,10 +126,11 @@ class ModuleTestCommander(object):
                     break
                 else:
                     if self.response is not None:
-                        print("heard response!")
-                        print(self.response)
-                        rospy.loginfo("Result: '%s'", self.response.status)
-                        exit()
+                        if self.response.status=="success" or self.response.status=="failure":
+                            print("heard response!")
+                            print(self.response)
+                            rospy.loginfo("Result: '%s'", self.response.status)
+                            exit()
             self.rate.sleep()
         
     def cleanup(self):

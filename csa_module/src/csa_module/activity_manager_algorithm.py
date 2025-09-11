@@ -19,18 +19,15 @@ class ActivityManagerAlgorithm(object):
     Base class object for activitiy manager algorithms.
     """
     
-    def __init__(self, expect_resp, dest_prefix=False):
+    def __init__(self, expect_resp):
         self.expect_resp = expect_resp
-        self.dest_prefix = dest_prefix
+        self.use_prefix = False
     
     def adjust_dest_names(self, prefix):
         """
         Adjust the name of destinations throughout the activity manager
         algorithms with a subsystem prefix
-        
-        NOTE: Implemented by end user if required by activity manager
-        algorithm. This function is called if "self.dest_prefix" is set
-        to True.
+
         """
         pass
     

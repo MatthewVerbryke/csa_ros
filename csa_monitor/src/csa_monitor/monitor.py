@@ -45,6 +45,7 @@ class CSAMonitor(object):
         rate = rospy.get_param("~rate", 30.0)
         self.rate = rospy.Rate(rate)
         self.module_names = rospy.get_param("~module_names", [])
+        self.print_topic = rospy.get_param("~print_topic", "")
         
         # Signal initialization
         rospy.loginfo("CSA monitor node initialized")
@@ -58,10 +59,13 @@ class CSAMonitor(object):
         
         # Initialize subscribers objects
         self.subscribers = {}
-        for name in self.module_name:
+        for name in self.module_names:
             self.setup_subscriber(name)
+            
+        # Run monitor
+        self.run()
     
-    def setup_subscriber(self, module_name)
+    def setup_subscriber(self, module_name):
         """
         Setup a rospy subscriber for a particular CSA module
         """
@@ -104,9 +108,18 @@ class CSAMonitor(object):
         status_msg.header.stamp = rospy.Time.now()
         for key,value in self.status.items():
             status_msg.status.append(value)
+            if key == self.print_topic:
+                print(value)
+                print("------------------------------------")
             
         # Publish status
         self.publisher.publish(status_msg)
+        
+    def print_node_status(self, status):
+        """
+        
+        """
+        pass
         
     def run(self):
         """
@@ -118,7 +131,7 @@ class CSAMonitor(object):
         # Main loop
         rospy.loginfo("CSA monitor node is running...")
         while not rospy.is_shutdown():
-            self.publish_status_array
+            self.publish_status_array()
             self.rate.sleep()
     
     def cleanup(self):
@@ -129,3 +142,7 @@ class CSAMonitor(object):
         # Log shutdown of module
         rospy.sleep(1)
         rospy.loginfo("CSA monitor node shutting down")
+
+
+if __name__ == "__main__":
+    CSAMonitor()

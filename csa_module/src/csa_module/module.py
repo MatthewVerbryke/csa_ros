@@ -76,7 +76,8 @@ class CSAModule(object):
         self.control = ControlComponent(self.name, tact_algorithm, rate, 
                                         latency, self.model)
         self.activity_manager = ActivityManagerComponent(self.name,
-                                                         am_algorithm)
+                                                         am_algorithm,
+                                                         self.subsystem)
         
         # Signal completion
         rospy.logdebug("Module components initialized")
@@ -259,8 +260,8 @@ class CSAModule(object):
             elif msg.destination in self.pub_alt.keys(): #FIXME?
                 pub_key = self.pub_alt[msg.destination]
             else:
-                msg = "Directive {} destination not recognized".format(msg.id)
-                rospy.logwarn("{} for '{}'".format(msg, self.name))
+                error_msg = "Directive {} destination not recognized".format(msg.id)
+                rospy.logwarn("{} {} for '{}'".format(error_msg, msg.destination, self.name))
         
             # Handle interface if needed
             if self.publishers[pub_key]["interface"] is not None:
@@ -288,7 +289,7 @@ class CSAModule(object):
                 self.publishers[pub_key]["publisher"].publish(msg_to_pub)
             elif self.publishers[pub_key]["type"] == "ws4py":
                 self.publishers[pub_key]["publisher"].send(msg_to_pub)
-        
+    
     def publish_multiple_messages(self, msgs):
         """
         Publish multple messages at the same time.
@@ -384,24 +385,25 @@ class CSAModule(object):
         if arb_response is not None:
             self.publish_message(arb_response)
         
+        # Check for completion when not expecting external responses
+        if not self.expect_resp and self.control.tactic is not None:
+            self.check_for_completion()
+            if self.name == "left_arm/habitual":
+                print(self.response)
         # If no new directives, run activity manager
         if arb_directive is None:
             am_output = self.activity_manager.run(None, self.response)
             am_directives = am_output[0]
             am_responses = am_output[1]
-            
+
             # Respond to commanded modules (if necessary)
             if am_directives is not None:
-                self.publish_multiple_message(am_directives)
+                self.publish_multiple_messages(am_directives)
         
         # If new directive from arbitration preempt activity manager
         else:
             am_directive = None
             am_responses = None
-        
-        # Check for completion when not expecting external responses
-        if not self.expect_resp and self.control.tactic is not None:
-            self.check_for_completion()
         
         # Control loop
         finished = False
@@ -411,16 +413,16 @@ class CSAModule(object):
             ctrl_output = self.control.run(arb_directive, am_responses, self.state)
             ctrl_directive = ctrl_output[0]
             ctrl_response = ctrl_output[1]
-            
+
             # Handle new control directive output
             if ctrl_directive is not None:
-                am_output = self.activity_manager.run(None, self.response)
+                am_output = self.activity_manager.run(ctrl_directive, None)
                 am_directives = am_output[0]
                 am_responses = am_output[1]
                 
                 # Issue commands to modules
                 if am_directives is not None:
-                    self.publish_multiple_message(am_directives)
+                    self.publish_multiple_messages(am_directives)
                     finished = True
                 
                 # Finish if no new responses either
@@ -441,7 +443,7 @@ class CSAModule(object):
             # Otherwise finish current loop
             else:
                 finished = True
-        
+
         # Publish status message
         end_t = rospy.Time.now()
         self.publish_status_message(start_t.to_sec(), end_t.to_sec())
@@ -486,11 +488,11 @@ class CSAModule(object):
         """
         Handling function for tactics when module is not recieving
         responses to its outputs (typically because its using an 
-        interface). Creates a resposne message which elicits the correct
+        interface). Creates a response message which elicits the correct
         response from the module.
         """
         
-        # Get relevant information from control component
+        # Get relevant information from arbitration and control component
         completion = self.control.tactic.completion
         fail_msg = self.control.tactic.fail_msg
         dir_id = self.control.cur_id
@@ -498,10 +500,10 @@ class CSAModule(object):
         # Create appropriate response message for situation
         if completion == "in progress":
             pass
-        elif completion == "complete":
+        elif completion == "complete": #TODO: go to standby?
             self.response = create_response_msg(dir_id, "", self.name,
                                                 "success", fail_msg, None, "")
-        elif completion == "failed":
+        elif completion == "failed": #TODO: go to standby?
             self.response = create_response_msg(dir_id, "", self.name,
                                                 "failure", fail_msg, None, "")
     

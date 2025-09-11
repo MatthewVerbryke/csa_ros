@@ -25,13 +25,14 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
     execute.
     """
     
-    def __init__(self, act_list, dest_names):
+    def __init__(self, act_list, dest_names, use_prefix):
         
         # Set response expectation parameter
         expect_resp = True
-        super().__init__(expect_resp, True)
+        super().__init__(expect_resp)
         
         # Initialize other parameters and variables
+        self.use_prefix = use_prefix
         self.dest_names = dest_names
         self.act_dict = {}
         self.allowed_names = []
@@ -49,6 +50,10 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
             self.allowed_names.append(act.name)
     
     def adjust_dest_names(self, prefix):
+        """
+        Adjust the names of destination modules with the given prefix, 
+        if specified in the module initialization script.
+        """
        
         # Correct destination names list
         for key,value in self.dest_names.items():
@@ -57,11 +62,11 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         
         # Correct desitnations within activities
         for key,value in self.act_dict.items():
-            for i in range(0,len(value.dests)):
-                new_name = prefix + "/" + value.dests[i]
-                value.dests[i] = new_name
-    
-        print(self.dest_names)
+            new_act_dests = []
+            for dest in value.dests:
+                new_dest = prefix + "/" + dest
+                new_act_dests.append(new_dest)
+            self.act_dict[key].dests = new_act_dests
     
     def process_response(self, response):
         """

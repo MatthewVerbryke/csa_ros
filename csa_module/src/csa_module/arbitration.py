@@ -115,6 +115,7 @@ class ArbitrationComponent(object):
             msg_action = "reject"
         else:
             msg_action = "accept"
+            msg = ""
         
         return is_okay, msg_action, msg
         
@@ -124,11 +125,10 @@ class ArbitrationComponent(object):
         """
         
         # Get info out of response
+        success = response.status
         if response.status == "success":
-            success = True
             msg = ""
         elif response.status == "failure":
-            success = False
             msg = response.reject_msg
             # TODO: determine more about the failure?
         
@@ -257,7 +257,7 @@ class ArbitrationComponent(object):
             
             # Get response to commanding module(s)
             cmdr_msg = self.get_response_to_commander(self.cur_directive,
-                                                      msg_action, msg,
+                                                      success, msg,
                                                       response.params)
             
             # Cleanup the completed/failed directive

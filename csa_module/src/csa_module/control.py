@@ -162,7 +162,7 @@ class ControlComponent(object):
             success = True
             rerun = False
             rospy.logdebug("Directive {} execution succeded".format(
-                self.module_name, self.direcvtive.name, self.directive.id))
+                self.module_name, self.directive.name, self.directive.id))
             arb_response = self.get_response_to_arbitration(self.directive,
                                                             "success", "",
                                                             params)
