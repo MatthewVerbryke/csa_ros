@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+
+<launch>
+  
+  <!-- Arguments to be passed to the launch file -->
+  <arg name="node_name" default="monitor"/>
+  <arg name="config_name" default="csa_monitor_config_act"/>
+  <arg name="robot" default=""/>
+  <arg name="sim" default="true"/>
+  <arg name="print_node" default=""/>
+  
+  <!-- Launch test module node -->
+  <node name="$(arg node_name)" pkg="csa_monitor" type="monitor.py" output="screen">
+      <rosparam file="$(find csa_monitor)/config/$(arg config_name).yaml"/>
+      <param name="robot" value="$(arg robot)"/>
+      <param name="/use_sim_time" value="$(arg sim)"/>
+      <param name="print_node" value="$(arg print_node)"/>
+  </node>
+  
+</launch>
