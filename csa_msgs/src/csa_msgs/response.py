@@ -15,7 +15,7 @@ import rospy
 from std_msgs.msg import Header
 
 from csa_msgs.msg import Response
-from params import ParameterObj
+from csa_msgs.params import ParametersObj
 
 
 def create_response_msg(id_num, src, dest, status, reject_msg, params, frame):
@@ -119,10 +119,10 @@ class ResponseObj(object):
         # Construct Parameter object from recognized input types
         if type(params) == dict:
             self.params.from_dicts(params)
-        elif type(params) == ParameterObj()
+        elif type(params) == ParameterObj:
             self.params = params
         else:
-            print("Parameter input type {} not recognized".format(type(params))
+            print("Parameter input type {} not recognized".format(type(params)))
     
     def to_msg(self, msg):
         """

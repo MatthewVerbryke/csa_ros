@@ -55,6 +55,8 @@ add_message_files(
    Directive.msg
    Response.msg
    Parameters.msg
+   ModuleStatus.msg
+   Status.msg
  )
 
 ## Generate services in the 'srv' folder

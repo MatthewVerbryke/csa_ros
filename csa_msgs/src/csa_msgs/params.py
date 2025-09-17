@@ -158,7 +158,7 @@ def unpack_parameter(packed_param, param_type):
     
     return param
 
-class ParamObj(object):
+class ParametersObj(object):
     """
     An object to allow for greater encapsulation and flexibility when 
     dealing with parameters in CSA.

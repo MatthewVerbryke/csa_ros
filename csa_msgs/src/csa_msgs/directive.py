@@ -15,7 +15,7 @@ import rospy
 from std_msgs.msg import Header
 
 from csa_msgs.msg import Directive
-from params import ParameterObj
+from csa_msgs.params import ParametersObj
 
 
 def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params,
@@ -128,10 +128,10 @@ class DirectiveObj(object):
         # Construct Parameter object from recognized input types
         if type(params) == dict:
             self.params.from_dicts(params)
-        elif type(params) == ParameterObj()
+        elif type(params) == ParameterObj:
             self.params = params
         else:
-            print("Parameter input type {} not recognized".format(type(params))
+            print("Parameter input type {} not recognized".format(type(params)))
     
     def to_msg(self):
         """
