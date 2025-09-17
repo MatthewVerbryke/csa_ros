@@ -15,7 +15,7 @@ import os
 import sys
 import threading
 
-from diagnostic_msgs.msg import DiagnosticStatus, DiagnosticArray
+from csa_msgs.msg import Status, ModuleStatus
 import rospy
 
 
@@ -54,7 +54,7 @@ class CSAMonitor(object):
         self.status = {}
         
         # Setup overall publisher
-        self.publisher = rospy.Publisher("csa_status", DiagnosticArray,
+        self.publisher = rospy.Publisher("csa_status", Status,
                                          queue_size=1)
         
         # Initialize subscribers objects
@@ -75,7 +75,7 @@ class CSAMonitor(object):
         
         # Create subscriber
         sub = rospy.Subscriber(name=sub_topic,
-                               data_class=DiagnosticStatus,
+                               data_class=ModuleStatus,
                                callback=self.status_callback,
                                callback_args=module_name)
         
@@ -103,11 +103,11 @@ class CSAMonitor(object):
         and publish it.
         """
         
-        # Construct DiagnosticArray message from status info
-        status_msg = DiagnosticArray()
-        status_msg.header.stamp = rospy.Time.now()
+        # Construct Status message from module status info
+        status_msg = Status()
+        status_msg.stamp = rospy.Time.now()
         for key,value in self.status.items():
-            status_msg.status.append(value)
+            status_msg.system_status.append(value)
             if key == self.print_topic:
                 print(value)
                 print("------------------------------------")

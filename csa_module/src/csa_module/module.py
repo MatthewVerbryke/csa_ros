@@ -440,7 +440,7 @@ class CSAModule(object):
 
         # Publish status message
         end_t = rospy.Time.now()
-        self.publish_status_message(start_t.to_sec(), end_t.to_sec())
+        self.publish_status_message(start_t, end_t)
         
         # Purge command and response callbacks for next loop
         self.command = None

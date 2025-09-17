@@ -43,7 +43,6 @@ class ArbitrationComponent(object):
         self.default_directive = Directive()
         self.default_directive.source = "self"
         self.default_directive.id = -1
-        self.default_directive.response_time = 1.0
         self.default_directive.priority = -1 # FIXME?
         
         # Add specific default directive parameters
