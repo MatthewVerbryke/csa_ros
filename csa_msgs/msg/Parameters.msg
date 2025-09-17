@@ -1,3 +1,9 @@
+# Actual parameter values
+diagnostic_msgs/KeyValue[] values
+
+# Separate container for parameter types
+diagnostic_msgs/KeyValue[] types
+
 # Entry conditions
 diagnostic_msgs/KeyValue[] entry_conds
 
