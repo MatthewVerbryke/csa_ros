@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+##!/usr/bin/env python3
 
 """
   Functions for working with a CSA module status messages (actually of
@@ -14,26 +14,26 @@
 
 import rospy
 
-from diagnostic_msgs.msg import DiagnosticStatus
+from csa_msgs.msg import ModuleStatus
 from csa_msgs.key_value import dict_to_key_value_list
 
 
-def create_status_msg(level, fail_msg, module_name, cur_id, module_stats):
+def create_module_status_msg(module_name, start_t, end_t, directive, tactic_name,
+                             act_list):
     """
     Build a status message from the input data, in the form of a 
-    "DiagnosticStatus" message.
+    "ModuleStatus" message.
     """
     
     # Create message
-    msg = DiagnosticStatus()
+    msg = ModuleStatus()
     
-    # Build message from inputs
-    msg.level = level
+    # Build messages from inputs
     msg.name = module_name
-    msg.message = fail_msg
-    msg.hardware_id = str(cur_id) #NOTE: actually storing directive id
-    
-    # Handle key value list for other stats
-    msg.values = dict_to_key_value_list(module_stats)
+    msg.start_t = start_t
+    msg.end_t = end_t
+    msg.cur_directive = directive
+    msg.cur_tactic = tactic_name
+    msg.cur_activities = act_list
     
     return msg

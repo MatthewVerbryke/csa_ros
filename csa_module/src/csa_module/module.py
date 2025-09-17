@@ -22,9 +22,9 @@ from std_msgs.msg import String
 from csa_module.activity_manager import ActivityManagerComponent
 from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
-from csa_msgs.msg import Directive, Response
+from csa_msgs.msg import Directive, Response, ModuleStatus
 from csa_msgs.response import create_response_msg
-from csa_msgs.status import create_status_msg
+from csa_msgs.status import create_module_status_msg
 from rosbridge_wrapper.ros_connect_wrapper import RosConnectWrapper as rC
 
 
@@ -146,7 +146,7 @@ class CSAModule(object):
         
         # Setup module status publisher
         # TODO: Add rosbridge option?
-        self.status_pub = rospy.Publisher(self.status_topic, DiagnosticStatus,
+        self.status_pub = rospy.Publisher(self.status_topic, ModuleStatus,
                                           queue_size=1)
         
         # Setup all required command publishers for other modules
@@ -302,23 +302,17 @@ class CSAModule(object):
         """
         Publish a module status message for monitoring the modules
         status.
-        
-        TODO: Improve upon basic implementation
-        TODO: Test
         """
         
-        # Package relavant module status variables
-        values = {"start time": start_t,
-                  "end time": end_t,
-                  "directive": self.arbitration.cur_directive,
-                  "tactic": self.control.tactic.name,
-                  "activities": list(self.activity_manager.cur_directives.keys()),
-        }
-        
-        # Create status message
-        # TODO: add consideration of failure level and reasoning
-        msg = create_status_msg(0, "", self.name, self.arbitration.cur_id,
-                                values)
+        # Create module status message
+        msg = create_module_status_msg(
+            self.name,
+            start_t,
+            end_t,
+            self.arbitration.cur_directive, 
+            self.control.tactic.name,
+            list(self.activity_manager.cur_directives.keys())
+        )
                                 
         # Publish message
         # TODO: add option for rosbridge publishing?
