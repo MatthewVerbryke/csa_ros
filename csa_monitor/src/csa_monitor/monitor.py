@@ -45,13 +45,14 @@ class CSAMonitor(object):
         rate = rospy.get_param("~rate", 30.0)
         self.rate = rospy.Rate(rate)
         self.module_names = rospy.get_param("~module_names", [])
-        self.print_topic = rospy.get_param("~print_topic", "")
+        self.print_topic = rospy.get_param("~print_node", None)
         
         # Signal initialization
         rospy.loginfo("CSA monitor node initialized")
         
         # Initialize variables
         self.status = {}
+        self.last_print = None
         
         # Setup overall publisher
         self.publisher = rospy.Publisher("csa_status", Status,
@@ -96,7 +97,7 @@ class CSAMonitor(object):
         key = args
         self.status[key] = msg
         self.lock.release()
-        
+    
     def publish_status_array(self):
         """
         Convert status dictionary into a DiagnosticArray type message
@@ -114,24 +115,29 @@ class CSAMonitor(object):
             
         # Publish status
         self.publisher.publish(status_msg)
-        
-    def print_node_status(self, status):
+    
+    def print_node_status(self):
+        """
+        If a specific module output is specified, print it out if it has
+        changed.
         """
         
-        """
-        pass
-        
+        if self.last_print != self.status[self.print_topic]:
+            print(self.status[self.print_topic])
+    
     def run(self):
         """
         Keep looping through the module while rospy is running.
         
-        # TODO: Add more functionality as needed
+        TODO: Add more functionality as needed
         """
         
         # Main loop
         rospy.loginfo("CSA monitor node is running...")
         while not rospy.is_shutdown():
             self.publish_status_array()
+            if self.print_topic is not None:
+                self.print_node_status()
             self.rate.sleep()
     
     def cleanup(self):
