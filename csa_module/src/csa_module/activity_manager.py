@@ -99,7 +99,11 @@ class ActivityManagerComponent(object):
         
         # If still waiting on other responses, continue without response
         if mode == "continue":
-            self.cur_directives.pop(response.source)
+            try:
+                self.cur_directives.pop(response.source)
+            except KeyError: #TODO: find out why this is happening
+                rospy.logwarn("Could not find stored activity for '{}'".format(
+                    response.source))
             response_msg = None
         
         # If successful, prepare response to control component
