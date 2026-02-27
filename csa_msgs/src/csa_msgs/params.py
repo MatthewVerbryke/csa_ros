@@ -196,34 +196,36 @@ class ParametersObj(object):
     
     def __str__(self):
         
-        s = "\n ---- PARAMETERS ----\n"
-        
-        # Print out values with type
-        s += "\nVALUES\n"
+        s = "-------------------------\nVALUES:\n\n"
         for key,value in self.values.items():
-            s += "    {} ({}): {}/n".format(
-                str(key), str(self.types[key]), str(value)
-            )
+            s += "'{}' (TYPE: '{}'):\n".format(key, self.types[key])
+            if self.types[key] == "str":
+                s += "'{}'\n\n".format(value)
+            else:
+                s += "{}\n\n".format(value)
         
-        # Print out conditions
-        s += " - INITIAL CONDITIONS:\n"
+        #TODO
+        s += "-------------------------\nINITIAL CONDITIONS:\n\n"
         for value in self.entry_conds:
             s += "    ({})\n".format(value)
-            
-        s += " - GOAL CONDITIONS:\n"
+        
+        #TODO
+        s += "-------------------------\nGOAL CONDITIONS:\n\n"
         for value in self.end_conds:
             s += "    ({})\n".format(value)
         
-        s += " - RULES:\n"
+        #TODO
+        s += "-------------------------\nRULES:\n\n"
         for value in self.rules:
             s += "    ({})\n".format(value)
         
-        s += " - CRITERIA:\n"
+        #TODO
+        s += "-------------------------\nCRITERIA:\n\n"
         for value in self.rules:
             s += "    ({})\n".format(value)
         
-        # Print out deadline
-        s += " - DEADLINE: {}\n".format(self.deadline)
+        s += "-------------------------\nDEADLINE: {}\n\n".format(
+            self.deadline.secs + 0.000000001*self.deadline.nsecs)
         
         return s
     

@@ -87,19 +87,21 @@ class ResponseObj(object):
     
     def __str__(self):
         
-        s = "\n========== RESPONSE {} ==========\n\n".format(self.id)
+        s = "===============RESPONSE+================\n"
         
-        # Print out main values
-        s += " - SOURCE MODULE: {}\n".format(self.source)
-        s += " - DESTINATION MODULE: {}\n".format(self.destination)
-        s += " - STATUS: {}\n".format(self.status)
-        if self.status == "failure" or self.status == "reject":
-            s += "{}\n".format(self.reject_message)
-        else:
-            s += "\n"
+        s += "CREATION TIME: {}\n".format(
+            self.header.stamp.secs + 0.000000001*self.header.stamp.nsecs)
         
-        # Print out parameters using its str function
+        s += "ID: {}\n".format(self.id)
+        s += "SOURCE: '{}'\n".format(self.source)
+        s += "DESTINATION: '{}'\n".format(self.destination)
+        s += "STATUS: '{}': '{}'\n".format(self.status, self.reject_msg)
+        if self.header.frame_id != "":
+            s += "FRAME ID: '{}'\n".format(self.header.frame_id)
+        
         s += str(self.params)
+        
+        s += "========================================"
         
         return s
     

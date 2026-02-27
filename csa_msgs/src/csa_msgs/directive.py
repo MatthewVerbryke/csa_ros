@@ -96,19 +96,24 @@ class DirectiveObj(object):
     
     def __str__(self):
         
-        s = "\n========== DIRECTIVE {}: '{}' ==========\n\n".format(
-            self.id, self.name
-        )
+        s = "===============DIRECTIVE================\n"
         
-        # Print out main values
-        s += " - SOURCE MODULE: {}\n".format(self.source)
-        s += " - DESTINATION MODULE: {}\n".format(self.destination)
-        s += " - RESPONSE TIME: {}\n".format(self.response_time)
-        s += " - PRIORITY: {}\n".format(self.priority)
-        s += " - REF. FRAME: {}\n\n".format(self.header.frame_id)
+        s += "CREATION TIME: {}\n".format(
+            self.header.stamp.secs + 0.000000001*self.header.stamp.nsecs)
         
-        # Print out parameters using its str function
+        s += "ID: {}\n".format(self.id)
+        s += "NAME: '{}'\n".format(self.name)
+        s += "SOURCE: '{}'\n".format(self.source)
+        s += "DESTINATION: '{}'\n".format(self.destination)
+        s += "RESPONSE TIME: {}\n".format(
+            self.response_time.secs + 0.000000001*self.response_time.nsecs)
+        s += "PRIORITY: {}\n".format(self.priority)
+        if self.header.frame_id != "":
+            s += "FRAME ID: '{}'\n".format(self.header.frame_id)
+        
         s += str(self.params)
+        
+        s += "========================================"
         
         return s
     
