@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 """
-  Functions for working with a CSA "Params" type sub-message.
+  Functions for working with CSA "Params" type sub-message and 
+  derivatives.
   
   NOTE: These functions can be used as a kludge to pass parameters of 
         arbitrary ROS message-types using the CSA Directive/Response 
@@ -18,6 +19,7 @@
 
 
 import rospy
+from std_msgs.msg import Time
 
 from csa_msgs.msg import Parameters
 from csa_msgs.key_value import key_value_list_to_dict, dict_to_key_value_list
@@ -28,7 +30,7 @@ from rosbridge_packing.packing import (
 
 def create_param_submsg(entry_conds, end_conds, criteria, rules, deadline):
     """
-    Build a 'Parameters' sub-message from the input data.
+    Build a 'Parameters' sub-message from input information.
     """
     
     # Create sub-message
@@ -62,8 +64,8 @@ def convert_dict_to_params(param_dict):
 
 def convert_params_to_dict(param_in):
     """
-    Convert a 'Parameters' message into a dict conposed of native Python
-    types (except 'deadline' which remains 'std_msgs/Duration'.
+    Convert a 'Parameters' sub-message into a dict conposed of native 
+    Python types, except 'deadline' which remains 'std_msgs/Duration'.
     """
     
     # Convert elements of 'Parameters' into dicts
@@ -82,7 +84,7 @@ def convert_params_to_dict(param_in):
     
     return param_dict
 
-def get_param_type(self, param):
+def get_param_type(param):
     """
     Determine the type of the parameter including base Python types and
     ROS types which have conversion functions.
@@ -91,6 +93,8 @@ def get_param_type(self, param):
           to the list below (or the 'get_ros_type' function if its a ROS
           type)
     """
+    
+    msg = ""
     
     # Check for native Python types
     if type(param) == float:
@@ -131,7 +135,7 @@ def pack_parameter(param, param_type):
     # Perform approapriate action
     if param_type in std_types:
         packed_param = param
-    elif param_type in ros_type:
+    elif param_type in ros_types:
         packed_param = pack_ros_msg(param)
     else:
         packed_param = None
@@ -151,12 +155,26 @@ def unpack_parameter(packed_param, param_type):
     # Perform approapriate action
     if param_type in std_types:
         param = packed_param
-    elif param_type in ros_type:
-        param = unpack_ros_msg(packed_param)
+    elif param_type in ros_types:
+        param = unpack_ros_msg(packed_param, param_type)
     else:
         param = None
     
     return param
+
+def create_param_obj(values, objects, entry_conds, end_conds, criteria,
+                     rules, deadline):
+    """
+    Cretae a 'ParametersObj' object from input information.
+    """
+    
+    param_obj = ParametersObj()
+    param_obj.from_dicts(
+        values, objects, entry_conds, end_conds, criteria, rules, deadline
+    )
+    
+    return param_obj
+
 
 class ParametersObj(object):
     """
@@ -168,12 +186,13 @@ class ParametersObj(object):
         
         # Initialize empty parameter holding dicts
         self.values = {}
-        self.types = {}
+        self.objects = {}
         self.entry_conds = {}
         self.end_conds = {}
         self.rules = {}
         self.criteria = {}
-        self.deadline = None
+        self.deadline = rospy.Time(0.0)
+        self.types = {}
     
     def __str__(self):
         
@@ -185,7 +204,6 @@ class ParametersObj(object):
             s += "    {} ({}): {}/n".format(
                 str(key), str(self.types[key]), str(value)
             )
-
         
         # Print out conditions
         s += " - INITIAL CONDITIONS:\n"
@@ -222,38 +240,38 @@ class ParametersObj(object):
         
         # Store name and type of parameter
         else:
-            for key,value in param_dict:
+            for key,value in param_dict.items():
                 if key not in self.types.keys():
                     name = key
-                    type_str = get_param_type(value)
+                    type_str, msg = get_param_type(value)
                     self.types.update({name: type_str})
                 else:
                     pass
     
     def from_msg(self, msg):
         """
-        Populate the contents of the parameter object from a 'Parameter'
-        ROS message.
+        Populate the object from a 'Parameter' ROS message.
         """
         
         # Extract parameter types
         for entry in msg.types:
-            self.types.update(entry.key, entry.value)
+            self.types.update({entry.key: entry.value})
         
         # Convert values to dict and unpack each
         values_raw = key_value_list_to_dict(msg.values, self.types)
         for key,value in values_raw.items():
             value_unpack = unpack_parameter(value, self.types[key])
-            self.values.update({key, value_unpack})
+            self.values.update({key: value_unpack})
         
         # Store other parameters
+        self.objects = key_value_list_to_dict(msg.objects)
         self.entry_conds = key_value_list_to_dict(msg.entry_conds)
         self.end_conds = key_value_list_to_dict(msg.end_conds)
         self.rules = key_value_list_to_dict(msg.rules)
         self.criteria = key_value_list_to_dict(msg.criteria)
         self.deadline = msg.deadline
     
-    def from_dicts(self, param_dicts):
+    def from_dict(self, param_dicts):
         """
         Given all relevant parameters as a dictionary, store them in the
         proper locations and construct the 'values' entry from the names
@@ -265,19 +283,51 @@ class ParametersObj(object):
         
         # Store actual parameters
         self.values = param_dicts["values"]
+        self.objects = param_dicts["objects"]
         self.entry_conds = param_dicts["entry_conds"]
         self.end_conds = param_dicts["end_conds"]
         self.rules = param_dicts["rules"]
         self.criteria = param_dicts["criteria"]
         
         # Store deadline as proper type
-        # TODO: more needed?
-        self.deadline = param_dicts["deadline"]
+        if type(param_dicts["deadline"]) == float:
+            self.deadline = rospy.Time(param_dicts["deadline"])
+        elif type(param_dicts["deadline"]) == Time:
+            self.deadline = param_dicts["deadline"]
+        elif param_dicts["deadline"] is None:
+            self.deadline = rospy.Time(0.0)
     
+    def from_dicts(self, values, objects, entry_conds, end_conds, criteria,
+                   rules, deadline):
+        """
+        Given all relevant parameters as multiple dictionaries, store 
+        them in the proper locations and construct the types dictionary.
+        """
+        
+        # Determine types of parameters
+        self.retrieve_value_types(values)
+        
+        # Store parameters
+        self.values = values
+        self.objects = objects
+        self.entry_conds = entry_conds
+        self.end_conds = end_conds
+        self.rules = rules
+        self.criteria = criteria
+        
+        # Store deadline as proper type
+        if type(deadline) == float:
+            self.deadline = rospy.Time(deadline)
+        elif type(deadline) == Time:
+            self.deadline = deadline
+        elif deadline is None:
+            self.deadline = rospy.Time(0.0)
+        
     def to_msg(self):
         """
-        Convert the parameter object to a ROS message (typically used 
-        as a sub-message within an overall Directive messages).
+        Convert the parameter object to a 'Parameters' ROS message 
+        (typically used as a sub-message within an overall 'Directive'
+        message).
         """
         
         msg = Parameters()
@@ -289,12 +339,13 @@ class ParametersObj(object):
             values_packed.update({key: val_packed})
         
         # Create sub-message and add elements as key-value lists
-        msg.values = key_value_list_to_dict(values_packed)
-        msg.types = key_value_list_to_dict(self.types)
-        msg.entry_conds = key_value_list_to_dict(self.entry_conds)
-        msg.end_conds = key_value_list_to_dict(self.end_conds)
-        msg.rules = key_value_list_to_dict(self.rules)
-        msg.criteria = key_value_list_to_dict(self.criteria)
+        msg.values = dict_to_key_value_list(values_packed)
+        msg.objects = dict_to_key_value_list(self.objects)
+        msg.types = dict_to_key_value_list(self.types)
+        msg.entry_conds = dict_to_key_value_list(self.entry_conds)
+        msg.end_conds = dict_to_key_value_list(self.end_conds)
+        msg.rules = dict_to_key_value_list(self.rules)
+        msg.criteria = dict_to_key_value_list(self.criteria)
         msg.deadline = self.deadline
         
         return msg

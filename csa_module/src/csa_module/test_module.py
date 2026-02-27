@@ -16,8 +16,8 @@ import threading
 import rospy
 
 from csa_msgs.msg import Directive, Response
-from csa_msgs.directive import create_directive_msg
-from csa_msgs.params import create_param_submsg
+from csa_msgs.directive import create_directive_obj
+from csa_msgs.params import create_param_obj
 
 
 class ModuleTestCommander(object):
@@ -49,11 +49,12 @@ class ModuleTestCommander(object):
         self.stop_option = stop_option
         
         # Create and store directive object
-        deadline = rospy.Duration(param_inputs[4])
-        params = create_param_submsg(param_inputs[0], param_inputs[1],
-                                     param_inputs[2], param_inputs[3],
-                                     deadline)
-        self.directive = create_directive_msg(dir_inputs[0], dir_inputs[1],
+        deadline = rospy.Duration(param_inputs[6])
+        params = create_param_obj(param_inputs[0], param_inputs[1],
+                                  param_inputs[2], param_inputs[3],
+                                  param_inputs[4], param_inputs[5],
+                                  deadline)
+        self.directive = create_directive_obj(dir_inputs[0], dir_inputs[1],
                                               dir_inputs[2], dir_inputs[3],
                                               dir_inputs[4], dir_inputs[5],
                                               dir_inputs[6], params,
@@ -94,7 +95,7 @@ class ModuleTestCommander(object):
         """
         
         # Publish test directive
-        self.pub.publish(self.directive)
+        self.pub.publish(self.directive.to_msg())
         
         # Process any response
         if self.response is not None:

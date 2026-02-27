@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 """
-  Functions for working with a CSA "Directive" type message.
+  Functions for working with CSA "Directive" type messages and
+  derivatives.
   
   Copyright 2021-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:
@@ -21,7 +22,7 @@ from csa_msgs.params import ParametersObj
 def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params,
                          frame):
     """
-    Build a "Directive" message from the input data.
+    Create a 'Directive' message from input information.
     """
     
     # Create the message
@@ -50,6 +51,31 @@ def create_directive_msg(id_num, name, desc, src, dest, t_resp, priority, params
     
     return msg
 
+def create_directive_obj_from_msg(msg):
+    """
+    Create a 'DirectiveObj' object directly from a 'Directive' ROS
+    message.
+    """
+    
+    obj = DirectiveObj()
+    obj.from_msg(msg)
+    
+    return obj
+
+def create_directive_obj(id_num, name, desc, src, dest, t_resp, priority, params,
+                         frame):
+    """
+    Create a 'DirectiveObj' object from from input information
+    """
+    
+    obj = DirectiveObj()
+    obj.from_values(
+        id_num, name, desc, src, dest, t_resp, priority, params, frame
+    )
+    
+    return obj
+
+
 class DirectiveObj(object):
     """
     A Directive object for CSA related code.
@@ -66,11 +92,11 @@ class DirectiveObj(object):
         self.destination = ""
         self.response_time = rospy.Duration(0.0)
         self.priority = -1
-        self.params = ParameterObj()
+        self.params = ParametersObj()
     
     def __str__(self):
         
-        s += "\n========== DIRECTIVE {}: '{}' ==========\n\n".format(
+        s = "\n========== DIRECTIVE {}: '{}' ==========\n\n".format(
             self.id, self.name
         )
         
@@ -79,7 +105,7 @@ class DirectiveObj(object):
         s += " - DESTINATION MODULE: {}\n".format(self.destination)
         s += " - RESPONSE TIME: {}\n".format(self.response_time)
         s += " - PRIORITY: {}\n".format(self.priority)
-        s += " - REF. FRAME: {}\n\n".format(self.header.frame)
+        s += " - REF. FRAME: {}\n\n".format(self.header.frame_id)
         
         # Print out parameters using its str function
         s += str(self.params)
@@ -127,16 +153,33 @@ class DirectiveObj(object):
         
         # Construct Parameter object from recognized input types
         if type(params) == dict:
-            self.params.from_dicts(params)
-        elif type(params) == ParameterObj:
+            self.params.from_dict(params)
+        elif type(params) == ParametersObj:
             self.params = params
+        elif params == None:
+            pass
         else:
             print("Parameter input type {} not recognized".format(type(params)))
+            print("Directive {} '{}', {} --> {}".format(id_num, name, src, dest))
+    
+    def get_params(self):
+        """
+        Get parameters out of the Directive while including high level
+        directive information within it. Useful where algorithms need to 
+        know such infomation while only recieving parameters
+        
+        TODO: Expand?
+        """
+        
+        params_out = self.params
+        params_out.values.update({"id": self.id})
+        
+        return params_out
     
     def to_msg(self):
         """
-        Convert the directive object to an equivalent ROS message for 
-        publishing.
+        Convert the directive object to an equivalent 'Directive' ROS 
+        message for publishing.
         """
         
         # Create the message
@@ -152,7 +195,6 @@ class DirectiveObj(object):
         msg.destination = self.destination
         msg.response_time = self.response_time
         msg.priority = self.priority
-        msg.params = self.params
+        msg.params = self.params.to_msg()
         
         return msg
-

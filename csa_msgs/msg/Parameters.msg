@@ -4,6 +4,9 @@ diagnostic_msgs/KeyValue[] values
 # Separate container for parameter types
 diagnostic_msgs/KeyValue[] types
 
+# Objects within problem scope
+diagnostic_msgs/KeyValue[] objects
+
 # Entry conditions
 diagnostic_msgs/KeyValue[] entry_conds
 

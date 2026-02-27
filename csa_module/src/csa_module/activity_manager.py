@@ -15,7 +15,7 @@ import rospy
 
 from csa_common.am_pass_through import PassThroughActivityManager
 from csa_msgs.msg import Directive, Response
-from csa_msgs.response import create_response_msg
+from csa_msgs.response import create_response_obj
 
 
 class ActivityManagerComponent(object):
@@ -76,7 +76,7 @@ class ActivityManagerComponent(object):
         # If failed to find directive, get failure response
         if not success:
             directives_out = None
-            response = create_response_msg(self.cur_id, "", "", "failure",
+            response = create_response_obj(self.cur_id, "", "", "failure",
                                            msg, None, "")
             rospy.logwarn("'{}' failed to find activities".format(
                 self.module_name))
@@ -95,7 +95,7 @@ class ActivityManagerComponent(object):
         """
         
         # Process response through activity manager algorithm
-        mode, params = self.am_algorithm.process_response(response)        
+        mode, params = self.am_algorithm.process_response(response)
         
         # If still waiting on other responses, continue without response
         if mode == "continue":
@@ -104,7 +104,7 @@ class ActivityManagerComponent(object):
         
         # If successful, prepare response to control component
         elif mode == "success":
-            response_msg = create_response_msg(self.cur_id, "", "", mode, "",
+            response_msg = create_response_obj(self.cur_id, "", "", mode, "",
                                                params, "")
             rospy.logdebug("Activities for directive {} succeeded".format(
                  self.cur_id))
@@ -115,7 +115,7 @@ class ActivityManagerComponent(object):
             
         # Otherwise get info out of response message
         elif mode == "failure":
-            response_msg = create_response_msg(self.cur_id, "", "", mode,
+            response_msg = create_response_obj(self.cur_id, "", "", mode,
                                                response.reject_msg, params, "")
             rospy.logdebug("Activities for directive {} failed: {}".format(
                  self.cur_id, response.reject_msg))
@@ -156,7 +156,7 @@ class ActivityManagerComponent(object):
         # Handle various things if deadline has passed
         if past_deadline:
             reject_msg = "Deadline ({}) reached".format(self.deadline.to_sec())
-            response_msg = create_response_msg(self.cur_id, "", "", "failure",
+            response_msg = create_response_obj(self.cur_id, "", "", "failure",
                                                reject_msg, None, "")
             rospy.logwarn("'{}' reached deadline {} for directive {} '{}'".format(
                 self.module_name,

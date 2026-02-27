@@ -14,7 +14,7 @@
 import rospy
 
 from csa_msgs.msg import Directive, Response
-from csa_msgs.response import create_response_msg
+from csa_msgs.response import create_response_obj
 from csa_module.tactics import TacticsComponent
 
 
@@ -102,7 +102,7 @@ class ControlComponent(object):
                 arb_response = None
                 if not self.executing:
                     self.executing = True
-                    
+                
                 # If tactic indicates completion, get success response
                 if self.tactic.completed:
                     rospy.logdebug("Directive {} execution complete".format(
@@ -124,6 +124,7 @@ class ControlComponent(object):
         # Handle failure to create control directive
         # TODO: expand?
         else:
+            msg = "Failed to get control directive"
             ctrl_directive = None
             arb_response = self.get_response_to_arbitration(None, "failure",
                                                             msg)
@@ -204,10 +205,10 @@ class ControlComponent(object):
             source = directive.source
         
         # Create response message
-        response_msg = create_response_msg(id_num, source, "", mode, msg,
-                                           params, frame)
+        response = create_response_obj(id_num, source, "", mode, msg, params,
+                                       frame)
         
-        return response_msg
+        return response
         
     def run(self, directive, response, state):
         """

@@ -20,7 +20,7 @@ from csa_msgs.params import ParametersObj
 
 def create_response_msg(id_num, src, dest, status, reject_msg, params, frame):
     """
-    Build a "Response" message from the input data.
+    Build a "Response" message from input informatoin.
     """
     
     # Create the message
@@ -47,6 +47,27 @@ def create_response_msg(id_num, src, dest, status, reject_msg, params, frame):
     
     return msg
 
+def create_response_obj_from_msg(msg):
+    """
+    Create a 'ResponseObj' object directly from a 'Directive' ROS
+    message.
+    """
+    
+    obj = ResponseObj()
+    obj.from_msg(msg)
+    
+    return obj
+
+def create_response_obj(id_num, src, dest, status, reject_msg, params, frame):
+    """
+    Create a 'ResponseObj' object from from input information.
+    """
+    
+    obj = ResponseObj()
+    obj.from_values(id_num, src, dest, status, reject_msg, params, frame)
+    
+    return obj
+
 
 class ResponseObj(object):
     """
@@ -62,17 +83,17 @@ class ResponseObj(object):
         self.destination = ""
         self.status = ""
         self.reject_msg = ""
-        self.params = ParameterObj()
+        self.params = ParametersObj()
     
     def __str__(self):
         
-        s += "\n========== RESPONSE {} ==========\n\n".format(self.id)
+        s = "\n========== RESPONSE {} ==========\n\n".format(self.id)
         
         # Print out main values
         s += " - SOURCE MODULE: {}\n".format(self.source)
         s += " - DESTINATION MODULE: {}\n".format(self.destination)
         s += " - STATUS: {}\n".format(self.status)
-        if status == "failure" or status == "reject":
+        if self.status == "failure" or self.status == "reject":
             s += "{}\n".format(self.reject_message)
         else:
             s += "\n"
@@ -97,7 +118,7 @@ class ResponseObj(object):
         self.reject_msg = msg.reject_msg
         
         # Process and store message parameters
-        self.params.from_params(msg.params)
+        self.params.from_msg(msg.params)
     
     def from_values(self, id_num, src, dest, status, reject_msg, params, frame):
         """
@@ -119,15 +140,18 @@ class ResponseObj(object):
         # Construct Parameter object from recognized input types
         if type(params) == dict:
             self.params.from_dicts(params)
-        elif type(params) == ParameterObj:
+        elif type(params) == ParametersObj:
             self.params = params
+        elif params == None:
+            pass
         else:
             print("Parameter input type {} not recognized".format(type(params)))
+            print("Response {}, {} --> {}".format(id_num, src, dest))
     
-    def to_msg(self, msg):
+    def to_msg(self):
         """
-        Convert the response object to an equivalent ROS message for 
-        publishing.
+        Convert the response object to an equivalent `Response` ROS 
+        message for publishing.
         """
         
         # Create the message
@@ -141,7 +165,7 @@ class ResponseObj(object):
         msg.destination = self.destination
         msg.status = self.status
         msg.reject_msg = self.reject_msg
-        msg.params = self.params
+        msg.params = self.params.to_msg()
         
         return msg
 

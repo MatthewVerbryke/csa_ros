@@ -16,7 +16,6 @@ import copy
 from csa_common.activity import Activity
 from csa_common.inert import InertActivity
 from csa_module.activity_manager_algorithm import ActivityManagerAlgorithm
-from csa_msgs.params import convert_params_to_dict
 
 
 class DiscreteActivityManager(ActivityManagerAlgorithm):
@@ -76,7 +75,7 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         """
         
         # Get out parameters
-        params = convert_params_to_dict(response.params)
+        params = response.params
         
         # If 'accept' meassage, continue
         if response.status == "accept":
@@ -114,13 +113,8 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         
         # Determine output directives
         else:
-            #TODO: better fix for this
-            if type(directive.params) != dict:
-                params = convert_params_to_dict(directive.params)
-            else:
-                params = directive.params
             self.activity = copy.deepcopy(self.act_dict[directive.name])
-            activities = self.activity.get_outputs(params)
+            activities = self.activity.get_outputs(directive.params)
             success = True
             
             # Package output directives with new ids

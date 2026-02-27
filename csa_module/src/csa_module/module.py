@@ -22,8 +22,11 @@ from std_msgs.msg import String
 from csa_module.activity_manager import ActivityManagerComponent
 from csa_module.arbitration import ArbitrationComponent
 from csa_module.control import ControlComponent
+from csa_msgs.directive import create_directive_obj_from_msg, DirectiveObj
 from csa_msgs.msg import Directive, Response, ModuleStatus
-from csa_msgs.response import create_response_msg
+from csa_msgs.response import (
+    create_response_obj, create_response_obj_from_msg, ResponseObj
+)
 from csa_msgs.status import create_module_status_msg
 from rosbridge_wrapper.ros_connect_wrapper import RosConnectWrapper as rC
 
@@ -247,11 +250,17 @@ class CSAModule(object):
         # Add sub-entry into main publishers dict
         self.publishers.update({name: pub_dict})
         
-    def publish_message(self, msg):
+    def publish_message(self, msg_in):
         """
         Publish a message using the correct message passing protocol for
         the desired publisher object.
         """
+        
+        # Convert to actual ROS message if necessary
+        if type(msg_in) == DirectiveObj or type(msg_in) == ResponseObj:
+            msg = msg_in.to_msg()
+        else:
+            msg = msg_in
         
         # Get appropriate publisher option
         if msg.destination != "":
@@ -324,7 +333,7 @@ class CSAModule(object):
         """
         
         self.lock.acquire()
-        self.command = msg
+        self.command = create_directive_obj_from_msg(msg)
         self.lock.release()
     
     def response_callback(self, msg):
@@ -333,7 +342,7 @@ class CSAModule(object):
         """
         
         self.lock.acquire()
-        self.response = msg
+        self.response = create_response_obj_from_msg(msg)
         self.lock.release()
     
     def meta_command_callback(self, msg):
@@ -382,8 +391,7 @@ class CSAModule(object):
         # Check for completion when not expecting external responses
         if not self.expect_resp and self.control.tactic is not None:
             self.check_for_completion()
-            if self.name == "left_arm/habitual":
-                print(self.response)
+        
         # If no new directives, run activity manager
         if arb_directive is None:
             am_output = self.activity_manager.run(None, self.response)
@@ -407,7 +415,7 @@ class CSAModule(object):
             ctrl_output = self.control.run(arb_directive, am_responses, self.state)
             ctrl_directive = ctrl_output[0]
             ctrl_response = ctrl_output[1]
-
+            
             # Handle new control directive output
             if ctrl_directive is not None:
                 am_output = self.activity_manager.run(ctrl_directive, None)
@@ -495,10 +503,10 @@ class CSAModule(object):
         if completion == "in progress":
             pass
         elif completion == "complete": #TODO: go to standby?
-            self.response = create_response_msg(dir_id, "", self.name,
+            self.response = create_response_obj(dir_id, "", self.name,
                                                 "success", fail_msg, None, "")
         elif completion == "failed": #TODO: go to standby?
-            self.response = create_response_msg(dir_id, "", self.name,
+            self.response = create_response_obj(dir_id, "", self.name,
                                                 "failure", fail_msg, None, "")
     
     def cleanup(self):

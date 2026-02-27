@@ -14,7 +14,7 @@
 import rospy
 
 from csa_msgs.msg import Directive, Parameters
-from csa_msgs.params import convert_params_to_dict
+from csa_msgs.params import convert_params_to_dict, ParametersObj
 
 
 class Tactic(object):
@@ -24,19 +24,12 @@ class Tactic(object):
     
     def __init__(self, module_name, params, model):
         
-        # Convert params to dict if not already
-        if type(params) == Parameters:
-            self.params = convert_params_to_dict(params)
-        elif type(params) == dict:
-            self.params = params
-        else:
-            rospy.logerr("Invalid params input type: {}".format(type(params)))
-        
         # Store parameters
+        self.params = params
         self.module_name = module_name
         self.model = model
         self.name = ""
-        self.cur_id = int(self.params["rules"]["id"])
+        self.cur_id = int(self.params.values["id"])
         
         # Initialize variables
         self.completion = "in progress"
@@ -47,7 +40,7 @@ class Tactic(object):
         self.completed = False
         
         # Delete id from params
-        self.params["rules"].pop("id")
+        self.params.values.pop("id")
         
     def run(self, state):
         """

@@ -35,7 +35,7 @@ def dict_to_key_value_list(msg_in):
         
     return key_value_list
 
-def key_value_list_to_dict(kv_list):
+def key_value_list_to_dict(kv_list, types=None):
     """
     Convert a ROS 'KeyValue' list into a dict of native Python types
     using 'ast.literal_eval'; actual values may need to be 'unpacked' to
@@ -46,16 +46,12 @@ def key_value_list_to_dict(kv_list):
     
     # Evaluate each key-value pair and store in output dictionary
     for entry in kv_list:
-        # entry_type = types_dict[entry.key]
-        # if entry_type == "str": # <- needed to catch strings
-            # interp_value = entry.value
-        # else:
-            # interp_value = ast.literal_eval(entry.value)
-        
-        try:
-            interp_value = ast.literal_eval(entry.value)
-        except ValueError:# TODO: Fix this: catches strings, but not ideal
+        if types == None: #TODO: Handle criteria/rules/conditions
             interp_value = entry.value
+        elif types[entry.key] == "str": # catch str before ast.literal_eval
+            interp_value = entry.value
+        else:
+            interp_value = ast.literal_eval(entry.value)
         
         dict_out.update({entry.key: interp_value})
         

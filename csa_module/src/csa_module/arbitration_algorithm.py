@@ -12,7 +12,7 @@
 
 
 from csa_common.directed_graph import DirectedGraph
-from csa_msgs.directive import Directive
+from csa_msgs.directive import DirectiveObj
 
 
 class ArbitrationAlgorithm(object):
@@ -35,6 +35,6 @@ class ArbitrationAlgorithm(object):
         Run the arbitration algorithm (needs to be filled end by user).
         """
         
-        arb_directive = Directive()
+        arb_directive = DirectiveObj()
         
         return arb_directive

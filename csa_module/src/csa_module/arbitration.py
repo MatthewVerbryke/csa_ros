@@ -13,8 +13,9 @@
 
 import rospy
 
+from csa_msgs.directive import create_directive_obj
 from csa_msgs.msg import Directive, Response
-from csa_msgs.response import create_response_msg
+from csa_msgs.response import create_response_obj
 
 
 class ArbitrationComponent(object):
@@ -39,21 +40,20 @@ class ArbitrationComponent(object):
         self.merge_algorithm = merge_algorithm
         self.max = max_directives
         
-        # Fill out common details of default directive
-        self.default_directive = Directive()
-        self.default_directive.source = "self"
-        self.default_directive.id = -1
-        self.default_directive.priority = -1 # FIXME?
-        
-        # Add specific default directive parameters
+        # Get specific default directive parameters
         if default_params is not None:
-            self.default_directive.name = default_params["name"]
-            self.default_directive.params = default_params["params"]
+            def_name = default_params["name"]
+            def_params = default_params["params"]
         else:
-            self.default_directive.name = "standby"
+            def_name = "standby"
+            def_params = None
             
             # Add standby tactic to allowed directives list
             self.merge_algorithm.allowed_dirs.append("standby")
+    
+        # Fill out default directive
+        self.default_directive = create_directive_obj(
+            -1, def_name, "", "self", "", 0.0, -1, def_params, "")
         
         # Initialize other parameters
         self.cur_directive = None
@@ -144,7 +144,7 @@ class ArbitrationComponent(object):
         
         # Create a response message    
         else:
-            response_msg = create_response_msg(directive.id, self.module_name,
+            response_msg = create_response_obj(directive.id, self.module_name,
                                                directive.source, msg_type, msg,
                                                params, None)
         
