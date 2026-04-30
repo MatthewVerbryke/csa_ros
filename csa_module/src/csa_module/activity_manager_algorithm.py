@@ -21,6 +21,15 @@ class ActivityManagerAlgorithm(object):
     
     def __init__(self, expect_resp):
         self.expect_resp = expect_resp
+        self.use_prefix = False
+    
+    def adjust_dest_names(self, prefix):
+        """
+        Adjust the name of destinations throughout the activity manager
+        algorithms with a subsystem prefix
+
+        """
+        pass
     
     def process_response(self, response):
         """

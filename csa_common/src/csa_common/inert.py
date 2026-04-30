@@ -15,8 +15,8 @@ import rospy
 
 from csa_common.activity import Activity
 from csa_module.tactic import Tactic
-from csa_msgs.directive import create_directive_msg
-from csa_msgs.params import create_param_submsg, convert_params_to_dict
+from csa_msgs.directive import create_directive_obj
+from csa_msgs.params import create_param_obj
 
 
 class InertTactic(Tactic):
@@ -38,8 +38,8 @@ class InertTactic(Tactic):
     def run(self, state):
         
         # Simply create empty directive asking for stop
-        params = create_param_submsg({}, {}, {}, {}, rospy.Time(0.0))
-        directive = create_directive_msg(self.cur_id, "inert", "",
+        params = create_param_obj({}, {}, {}, {}, {}, {}, rospy.Time(0.0))
+        directive = create_directive_obj(self.cur_id, "inert", "",
                                          self.module_name, "", 0.0, 1,
                                          params, "")
         success = True #TODO: handle success/failure consideration here?
@@ -68,11 +68,11 @@ class InertActivity(Activity):
         
         # create empty params message
         # TODO: will there ever be param inputs here?
-        params = create_param_submsg({}, {}, {}, {}, rospy.Time(0.0))
+        params = create_param_obj({}, {}, {}, {}, {}, {}, rospy.Time(0.0))
         
         # Create directive for all commanded modules
         for name in self.dests:
-            activity = create_directive_msg(-1, "inert", "", self.source, name,
+            activity = create_directive_obj(-1, "inert", "", self.source, name,
                                             self.resp_t, 0, params, None) 
             acts_out.append(activity)
         

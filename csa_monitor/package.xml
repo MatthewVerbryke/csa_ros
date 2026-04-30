@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>csa_monitor</name>
+  <version>0.0.0</version>
+  <description>The csa_monitor package</description>
+  
+  <maintainer email="verbrymr@mail.uc.edu">Matthew Verbryke</maintainer>
+  
+  <license>BSD</license>
+  
+  <author email="verbrymr@mail.uc.edu">Matthew Verbyrke</author>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+  
+  <build_depend>csa_msgs</build_depend>
+  <build_depend>diagnostic_msgs</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  
+  <build_export_depend>csa_msgs</build_export_depend>
+  <build_export_depend>diagnostic_msgs</build_export_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  
+  <exec_depend>csa_msgs</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  
+  <export>
+  </export>
+  
+</package>

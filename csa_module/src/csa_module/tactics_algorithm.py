@@ -3,7 +3,7 @@
 """
   Generic CSA tactic selection algorithm base class source code.
   
-  Copyright 2023-2024 University of Cincinnati
+  Copyright 2023-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -35,17 +35,6 @@ class TacticsAlgorithm(object):
         self.module_name = module_name
         self.rate = rate
         self.latency = latency
-        
-    def get_cur_id(self, directive):
-        """
-        Retrieve the current ID number from the directive, so various
-        tactics have it when running.
-        """
-        id_kv = KeyValue()
-        id_kv.key = "id"
-        id_kv.value = str(directive.id)
-        
-        return id_kv
     
     def run(self, directive, state, model):
         """

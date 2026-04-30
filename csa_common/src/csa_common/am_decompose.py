@@ -12,9 +12,9 @@
 
 
 from csa_module.activity_manager_algorithm import ActivityManagerAlgorithm
-from csa_msgs.directive import create_directive_msg
+from csa_msgs.directive import create_directive_obj
 from csa_msgs.msg import Directive, Response
-from csa_msgs.params import create_param_submsg, convert_params_to_dict
+from csa_msgs.params import create_param_obj
 
 
 class DecomposedActivityManager(ActivityManagerAlgorithm):
@@ -69,37 +69,44 @@ class DecomposedActivityManager(ActivityManagerAlgorithm):
         t_resp = directive.response_time.to_sec()
         deadline = directive.params.deadline
         priority = directive.priority
-             
-        # Convert parameters back to python types
-        full_params = convert_params_to_dict(directive.params)
         
         # Get parameters
         for dest in self.dests:
-            if full_params["entry_conds"] != {}:
-                entry_conds = full_params["entry_conds"][dest]
+            if directive.params.values != {}:
+                values = directive.params.values[dest]
+            else: 
+                values = {}
+            
+            if directive.params.objects != {}:
+                objects = directive.params.objects[dest]
+            else: 
+                objects = {}
+            
+            if directive.params.entry_conds != {}:
+                entry_conds = directive.params.entry_conds[dest]
             else: 
                 entry_conds = {}
             
-            if full_params["end_conds"] != {}:
-                end_conds = full_params["end_conds"][dest]
+            if directive.params.end_conds != {}:
+                end_conds = directive.params.end_conds[dest]
             else:
                 end_conds = {}
             
-            if full_params["criteria"] != {}:
-                criteria = full_params["criteria"][dest]
+            if directive.params.criteria != {}:
+                criteria = directive.params.criteria[dest]
             else:
                 criteria = {}
                 
-            if full_params["rules"] != {}:
-                rules = full_params["rules"][dest]
+            if directive.params.rules != {}:
+                rules = directive.params.rules[dest]
             else:
                 rules = {}
             
             # Create directive for this destination
             self.id_count += 1
-            params = create_param_submsg(entry_conds, end_conds, criteria, rules,
-                                         deadline)
-            directive_out = create_directive_msg(self.id_count, name, 
+            params = create_param_obj(values, objects, entry_conds, end_conds,
+                                      criteria, rules, deadline)
+            directive_out = create_directive_obj(self.id_count, name, 
                                                  description, self.source, dest,
                                                  t_resp, priority, params, "")
                                                  

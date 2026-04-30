@@ -3,7 +3,7 @@
 """
   CSA module tactics component source code.
   
-  Copyright 2021-2023 University of Cincinnati
+  Copyright 2021-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -15,7 +15,7 @@ import rospy
 
 from csa_common.inert import InertTactic
 from csa_common.standby import StandbyTactic
-from csa_msgs.msg import Parameters
+from csa_msgs.params import create_param_obj
 
 
 class TacticsComponent(object):
@@ -50,14 +50,16 @@ class TacticsComponent(object):
         # If module is standing by, quickly get Standby tactic
         if directive.name == "standby":
             name = self.tactics_algorithm.module_name
-            params = {"rules": {"id":directive.id}}
+            params = create_param_obj({"id":directive.id}, {}, {}, {}, {}, {},
+                                      rospy.Time(0.0))
             tactic = StandbyTactic(name, params, model)
             success = True
         
         # If commanded to go inert, quickly get Inert tactic
         elif directive.name == "inert":
             name = self.tactics_algorithm.module_name
-            params = {"rules": {"id":directive.id}}
+            params = create_param_obj({"id":directive.id}, {}, {}, {}, {}, {},
+                                      rospy.Time(0.0))
             tactic = InertTactic(name, params, model)
             success = True
         

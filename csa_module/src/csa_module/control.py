@@ -3,7 +3,7 @@
 """
   CSA module control component source code.
   
-  Copyright 2021-2024 University of Cincinnati
+  Copyright 2021-2025 University of Cincinnati
   All rights reserved. See LICENSE file at:
   https://github.com/MatthewVerbryke/csa_ros
   Additional copyright may be held by others, as reflected in the commit
@@ -14,7 +14,7 @@
 import rospy
 
 from csa_msgs.msg import Directive, Response
-from csa_msgs.response import create_response_msg
+from csa_msgs.response import create_response_obj
 from csa_module.tactics import TacticsComponent
 
 
@@ -64,27 +64,26 @@ class ControlComponent(object):
         """
         
         # Get tactic from the tactics component
-        rospy.loginfo("'{}': Requesting tactic for direcitve {}...".format(
-            self.module_name, directive.id))
-        success, tactic = self.tactics_component.run(directive, state,
-                                                     self.model)
+        rospy.logdebug("Requesting tactic for direcitve {}".format(
+            self.module_name, directive.id, directive.name))
+        output = self.tactics_component.run(directive, state, self.model)
+        success = output[0]
+        tactic = output[1]
         
         # If successful, store tactic and new directive
         if success:
             response = None
             self.directive = directive
             self.tactic = tactic
-            rospy.loginfo("'{}': Successfully found tactic, exectuing...".format(
-                self.module_name))
+            rospy.logdebug("Successfully found tactic '{}'")
         
         # Handle failure to find tactic
         else:
-            msg = "Failed to find tactic"
             response = self.get_response_to_arbitration(directive, "failure",
                                                         msg)
             self.directive = None
             self.tactic = None
-            rospy.logwarn("'{}': {}".format(self.module_name, msg))
+            rospy.logwarn("'{}' failed to find tactic".format(self.module_name))
         
         return success, response
         
@@ -103,17 +102,15 @@ class ControlComponent(object):
                 arb_response = None
                 if not self.executing:
                     self.executing = True
-                    
+                
                 # If tactic indicates completion, get success response
                 if self.tactic.completed:
-                    rospy.loginfo("'{}': Directive {} execution complete".format(
-                        self.module_name, self.directive.id))
-                    arb_response = self.get_response_to_arbitration(None,
-                                                                    "success",
-                                                                    "")
+                    rospy.logdebug("Directive {} execution complete".format(
+                        self.directive.id))
+                    arb_response = self.get_response_to_arbitration(
+                        None, "success", "")
             
             # Build response if not issuing directives for tactic
-            # TODO: Test
             else:
                 if ctrl_directive is None:
                     arb_response = None
@@ -121,9 +118,8 @@ class ControlComponent(object):
                 else:
                     params = ctrl_directive.params
                     ctrl_directive = None
-                    arb_response = self.get_response_to_arbitration(None,
-                                                                    "success",
-                                                                    "", params)
+                    arb_response = self.get_response_to_arbitration(
+                        None, "success", "", params)
         
         # Handle failure to create control directive
         # TODO: expand?
@@ -137,7 +133,8 @@ class ControlComponent(object):
             self.executing = False
             
             # Log failure to terminal/file
-            rospy.logwarn("'{}': {}".format(self.module_name, msg))
+            rospy.logwarn("'{}' failed to get control directive".format(
+                self.module_name))
         
         return ctrl_directive, arb_response
     
@@ -165,16 +162,16 @@ class ControlComponent(object):
         elif mode == "success":
             success = True
             rerun = False
-            rospy.loginfo("'{}': Directive {} execution succeded".format(
-                self.module_name, self.directive.id))
+            rospy.logdebug("Directive {} execution succeded".format(
+                self.module_name, self.directive.name, self.directive.id))
             arb_response = self.get_response_to_arbitration(self.directive,
                                                             "success", "",
                                                             params)
         elif mode == "failure":
             success = False
             rerun = False
-            rospy.logwarn("'{}': Directive {} execution failed, {}".format(
-                self.module_name, self.directive.id, response.reject_msg))
+            rospy.logdebug("Directive {} execution failed for {}: {}".format(
+                self.directive.id, self.module_name, response.reject_msg))
             arb_response = self.get_response_to_arbitration(self.directive,
                                                             "failure",
                                                             response.reject_msg)
@@ -186,7 +183,7 @@ class ControlComponent(object):
         """
         TODO
         """
-        rospy.loginfo("'{}': Attempting to replan (currently TODO)...".format(
+        rospy.logwarn("Replanning... (Not yet supported)".format(
             self.module_name))
         self.executing = False
         self.directive = None
@@ -208,10 +205,10 @@ class ControlComponent(object):
             source = directive.source
         
         # Create response message
-        response_msg = create_response_msg(id_num, source, "", mode, msg,
-                                           params, frame)
+        response = create_response_obj(id_num, source, "", mode, msg, params,
+                                       frame)
         
-        return response_msg
+        return response
         
     def run(self, directive, response, state):
         """
@@ -228,7 +225,7 @@ class ControlComponent(object):
             if got_tact:
                 self.cur_id = directive.id
                 ctrl_directive, arb_response = self.create_control_directive(
-                    state)            
+                    state)
             else:
                 pass
         
@@ -279,3 +276,14 @@ class ControlComponent(object):
                 pass
         
         return ctrl_directive, arb_response
+    
+    def reset(self):
+        """
+        Reset the component, including removal of all directives and
+        setting all variables to their original values.
+        """
+        
+        self.cur_id = -2
+        self.directive = None
+        self.tactic = None
+        self.executing = False

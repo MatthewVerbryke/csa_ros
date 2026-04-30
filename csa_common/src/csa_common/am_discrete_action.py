@@ -16,7 +16,6 @@ import copy
 from csa_common.activity import Activity
 from csa_common.inert import InertActivity
 from csa_module.activity_manager_algorithm import ActivityManagerAlgorithm
-from csa_msgs.params import convert_params_to_dict
 
 
 class DiscreteActivityManager(ActivityManagerAlgorithm):
@@ -25,13 +24,14 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
     execute.
     """
     
-    def __init__(self, act_list, dest_names):
+    def __init__(self, act_list, dest_names, use_prefix):
         
         # Set response expectation parameter
         expect_resp = True
         super().__init__(expect_resp)
         
         # Initialize other parameters and variables
+        self.use_prefix = use_prefix
         self.dest_names = dest_names
         self.act_dict = {}
         self.allowed_names = []
@@ -48,6 +48,25 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
             self.act_dict.update({act.name: act})
             self.allowed_names.append(act.name)
     
+    def adjust_dest_names(self, prefix):
+        """
+        Adjust the names of destination modules with the given prefix, 
+        if specified in the module initialization script.
+        """
+       
+        # Correct destination names list
+        for key,value in self.dest_names.items():
+            new_name = prefix + "/" + value
+            self.dest_names[key] = new_name
+        
+        # Correct desitnations within activities
+        for key,value in self.act_dict.items():
+            new_act_dests = []
+            for dest in value.dests:
+                new_dest = prefix + "/" + dest
+                new_act_dests.append(new_dest)
+            self.act_dict[key].dests = new_act_dests
+    
     def process_response(self, response):
         """
         Evaluate a response message to current output directives and 
@@ -56,7 +75,7 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         """
         
         # Get out parameters
-        params = convert_params_to_dict(response.params)
+        params = response.params
         
         # If 'accept' meassage, continue
         if response.status == "accept":
@@ -94,13 +113,8 @@ class DiscreteActivityManager(ActivityManagerAlgorithm):
         
         # Determine output directives
         else:
-            #TODO: better fix for this
-            if type(directive.params) != dict:
-                params = convert_params_to_dict(directive.params)
-            else:
-                params = directive.params
             self.activity = copy.deepcopy(self.act_dict[directive.name])
-            activities = self.activity.get_outputs(params)
+            activities = self.activity.get_outputs(directive.params)
             success = True
             
             # Package output directives with new ids
