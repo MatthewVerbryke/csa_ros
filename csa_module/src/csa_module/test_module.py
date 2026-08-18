@@ -49,7 +49,7 @@ class ModuleTestCommander(object):
         self.stop_option = stop_option
         
         # Create and store directive object
-        deadline = rospy.Duration(param_inputs[6])
+        deadline = rospy.Time.now() + rospy.Duration(param_inputs[6])
         params = create_param_obj(param_inputs[0], param_inputs[1],
                                   param_inputs[2], param_inputs[3],
                                   param_inputs[4], param_inputs[5],

@@ -19,7 +19,6 @@
 
 
 import rospy
-from std_msgs.msg import Time
 
 from csa_msgs.msg import Parameters
 from csa_msgs.key_value import key_value_list_to_dict, dict_to_key_value_list
@@ -111,6 +110,10 @@ def get_param_type(param):
         type_out = "list"
     elif type(param) == tuple:
         type_out = "tuple"
+        
+    #FIXME: Handle numpy arrays/matricies
+    #TODO: Add catch for 'rospy.rostime.Time'; not a message but often 
+    #    treated as one.
     
     # Check for ROS types
     else:
@@ -118,7 +121,10 @@ def get_param_type(param):
         if ros_type is not None:
             type_out = ros_type
         else:
-            msg = "Parameter type {} not recognized"
+            print(param)
+            print(type(param))
+            #FIXME: will still crash, what needs to be done here?
+            msg = "Parameter type {} not recognized" 
     
     return type_out, msg
 
@@ -227,6 +233,7 @@ class ParametersObj(object):
         s += "-------------------------\nDEADLINE: {}\n\n".format(
             self.deadline.secs + 0.000000001*self.deadline.nsecs)
         
+        
         return s
     
     def retrieve_value_types(self, param_dict):
@@ -294,7 +301,7 @@ class ParametersObj(object):
         # Store deadline as proper type
         if type(param_dicts["deadline"]) == float:
             self.deadline = rospy.Time(param_dicts["deadline"])
-        elif type(param_dicts["deadline"]) == Time:
+        elif type(param_dicts["deadline"]) == rospy.rostime.Time:
             self.deadline = param_dicts["deadline"]
         elif param_dicts["deadline"] is None:
             self.deadline = rospy.Time(0.0)
@@ -320,7 +327,7 @@ class ParametersObj(object):
         # Store deadline as proper type
         if type(deadline) == float:
             self.deadline = rospy.Time(deadline)
-        elif type(deadline) == Time:
+        elif type(deadline) == rospy.rostime.Time:
             self.deadline = deadline
         elif deadline is None:
             self.deadline = rospy.Time(0.0)

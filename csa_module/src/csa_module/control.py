@@ -69,6 +69,7 @@ class ControlComponent(object):
         output = self.tactics_component.run(directive, state, self.model)
         success = output[0]
         tactic = output[1]
+        msg = ""
         
         # If successful, store tactic and new directive
         if success:
